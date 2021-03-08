@@ -14,6 +14,7 @@
 import os
 import sys
 import shutil
+import pickle
 
 glp = os.path.abspath("../code")
 if not glp in sys.path: sys.path.append( glp )
@@ -38,7 +39,7 @@ import StateUtilities as SU
 
 cobs.Model.set_energyplus_folder(global_paths["eplus"])
 
-checkpoint_dir = "checkpoints/001" + datetime.datetime.now().strftime("%Y%m%d-%H%M")
+checkpoint_dir = "checkpoints/001-" + datetime.datetime.now().strftime("%Y%m%d-%H%M")
 
 #
 # Define the building and the occupants
@@ -54,7 +55,9 @@ agents = []
 # HINT: a device can be a zone, too
 for agent_name, (controlled_device, controlled_device_type) in building.agent_device_pairing.items():
     new_agent = agent_constructor( controlled_device_type )
-    new_agent.initialize(name = agent_name)
+    new_agent.initialize(name = agent_name,
+                         controlled_element = controlled_device,
+                         global_state_keys  = building.global_state_variables)
     agents.append(new_agent)
 
 #
@@ -72,7 +75,8 @@ for agent in agents:
     new_critic = RLCritics.CriticMergeAndOnlyFC(
                     hidden_size = 40,
                     input_variables=ciritic_input_variables,
-                    agents = agents)
+                    agents = agents,
+                    global_state_keys=building.global_state_variables)
     critics.append(new_critic)
 
 #
@@ -80,9 +84,12 @@ for agent in agents:
 building.model.set_runperiod(30, 2020, 7, 1)
 building.model.set_timestep(12) # 5 Min interval, 12 steps per hour
 
-n_episode_runs = 100
+#n_episode_runs = 100
+n_episode_runs = 1
 
 os.makedirs(checkpoint_dir, exist_ok=True)
+
+debug_output = {}
 
 for n_episode in range(n_episode_runs):
     output_lists = {
@@ -106,7 +113,7 @@ for n_episode in range(n_episode_runs):
         "vav_pos_list": []
     }
     
-    ddpg_episode_mc(building, building_occ, agents, critics, output_lists, n_episode)
+    ddpg_episode_mc(building, building_occ, agents, critics, output_lists, n_episode, debug_output)
     
     # save agent/critic networks every 10th run
     if n_episode+1 % 10 == 0:
@@ -114,13 +121,13 @@ for n_episode in range(n_episode_runs):
         for critic in critics: agent.save_models_to_disk(checkpoint_dir, prefix=f"episode_{n_episode}_")
     # save the output_lists
     f = open(os.path.join(checkpoint_dir, f"epoch_{n_episode}_output_lists.pickle"), "wb")
-    pickle.dump(datalist, f)
+    pickle.dump(output_lists, f)
     f.close()
 
 #
 # save the building_occ object
 f = open(os.path.join(checkpoint_dir, "building_occ.pickle"), "wb")
-pickle.dump(datalist, f)
+pickle.dump(building_occ, f)
 f.close()
 
 
