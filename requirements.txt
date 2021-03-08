@@ -1,0 +1,11 @@
+numpy
+pandas
+torch
+torchvision
+torchsummary
+eppy
+matplotlib
+Pillow
+plotly
+jupyter
+jedi<0.18.0
