@@ -1,0 +1,15 @@
+.ipynb_checkpoints/
+scripts/result/
+scripts/input.idf
+notebooks/input.idf
+notebooks/result/
+.*.swp
+*.pyc
+__pycache__/
+*.toc
+*.synctex.gz
+*.aux
+*.nav
+*.log
+*.out
+*.snm
