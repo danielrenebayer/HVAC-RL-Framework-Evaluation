@@ -84,8 +84,7 @@ for agent in agents:
 building.model.set_runperiod(30, 2020, 7, 1)
 building.model.set_timestep(12) # 5 Min interval, 12 steps per hour
 
-#n_episode_runs = 100
-n_episode_runs = 1
+n_episode_runs = 100
 
 os.makedirs(checkpoint_dir, exist_ok=True)
 
@@ -116,7 +115,7 @@ for n_episode in range(n_episode_runs):
     ddpg_episode_mc(building, building_occ, agents, critics, output_lists, n_episode, debug_output)
     
     # save agent/critic networks every 10th run
-    if n_episode+1 % 10 == 0:
+    if (n_episode+1) % 10 == 0:
         for agent in agents: agent.save_models_to_disk(checkpoint_dir, prefix=f"episode_{n_episode}_")
         for critic in critics: agent.save_models_to_disk(checkpoint_dir, prefix=f"episode_{n_episode}_")
     # save the output_lists
