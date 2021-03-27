@@ -62,12 +62,14 @@ def plot_eees(dfs, ax):
     eees_mean = dfs["eees"].groupby('episode').mean()
     eees_sum  = dfs["eees"].groupby('episode').sum()
 
-    dfs["eees"].loc[:, "reward"].plot(ax=ax[0], title="Reward, for each step")
-    eees_mean.loc[:,   "reward"].plot(ax=ax[1], title="Reward, mean for each episode")
-    dfs["eees"].loc[:, "energy_Wh"].plot(ax=ax[2], title="Energy consumption in Wh, for each step")
-    eees_mean.loc[:,   "energy_Wh"].plot(ax=ax[3], title="Energy consumption in Wh, mean for each episode")
-    dfs["eees"].loc[:, "manual_stp_ch_n"].plot(ax=ax[4], title="Number of manual setpoint changes, for each step")
-    eees_sum.loc[:,    "manual_stp_ch_n"].plot(ax=ax[5], title="Number of manual setpoint changes, sum for each episode")
+    dfs["eees"].loc[:, "reward"].plot(ax=ax[0], label="Reward, for each step")
+    eees_mean.loc[:,   "reward"].plot(ax=ax[1], label="Reward, mean for each episode")
+    dfs["eees"].loc[:, "energy_Wh"].plot(ax=ax[2], label="Energy consumption in Wh, for each step")
+    eees_mean.loc[:,   "energy_Wh"].plot(ax=ax[3], label="Energy consumption in Wh, mean for each episode")
+    dfs["eees"].loc[:, "manual_stp_ch_n"].plot(ax=ax[4], label="Number of manual setpoint changes, for each step")
+    eees_sum.loc[:,    "manual_stp_ch_n"].plot(ax=ax[5], label="Number of manual setpoint changes, sum for each episode")
+    for i in range(6):
+        ax[i].legend()
 
 def plot_eeesea(dfs, ax):
     if len(dfs["eeesea"].index) == 0:
@@ -114,22 +116,43 @@ def plot_sees(dfs, ax):
 
 def plot_seeser(dfs, selected_room, ax):
     selroom = dfs["seeser"].loc[ dfs["seeser"].loc[:, "room"] == selected_room ]
-    selroom.loc[:, ["temp"]].plot(ax=ax[0])
-    selroom.loc[:, ["humidity"]].plot(ax=ax[1])
-    selroom.loc[:, ["occupancy"]].plot(ax=ax[2])
-    selroom.loc[:, ["co2"]].plot(ax=ax[3])
+    selroom.loc[:, "temp"].plot(ax=ax[0], label=f"Temp, R. {selected_room}")
+    selroom.loc[:, "humidity"].plot(ax=ax[1], label=f"Humidity, R. {selected_room}")
+    selroom.loc[:, "occupancy"].plot(ax=ax[2], label=f"Occupancy, R. {selected_room}")
+    selroom.loc[:, "co2"].plot(ax=ax[3], label=f"CO2, R. {selected_room}")
+    for i in range(4):
+        ax[i].legend()
 
-def plot_seesea(dfs, selected_agent, ax=None):
+def plot_seeser_all_rooms(dfs, ax):
+    for room in dfs["seeser"].loc[:, "room"].unique():
+        plot_seeser(dfs, room, ax)
+
+def plot_seesea(dfs, ax=None):
+    if len(dfs["seesea"].loc[:, "agent_nr"].unique()) == 1:
+        # single agent
+        selected_agent = dfs["seesea"].loc[:, "agent_nr"].unique()[0]
+        plot_seesea_single_agent(dfs, selected_agent, ax)
+    else:
+        # multi agent
+        offset = 0
+        for selected_agent in dfs["seesea"].loc[:, "agent_nr"].unique():
+            offset += plot_seesea_single_agent(dfs, selected_agent, ax[offset:])
+
+def plot_seesea_single_agent(dfs, selected_agent, ax=None):
     actions_dict_df = dfs["seesea"].loc[ dfs["seesea"].loc[:, "agent_nr"] == selected_agent ]
     actions_df = pd.DataFrame([ ast.literal_eval( action )
                                 for action
                                 in actions_dict_df.reset_index().loc[:, "agent_actions"]
                               ])
     actions_df.index = actions_dict_df.index
+    sum_of_outputs = 0
     if ax is None:
         actions_df.plot(subplots=True, figsize=(7,15))
+        sum_of_outputs = 1
     else:
         for idx, col in enumerate(actions_df.columns):
             actions_df.loc[:, [col]].plot(ax=ax[idx])
+            sum_of_outputs += 1
+    return sum_of_outputs
 
 
