@@ -155,4 +155,21 @@ def plot_seesea_single_agent(dfs, selected_agent, ax=None):
             sum_of_outputs += 1
     return sum_of_outputs
 
+def plot_room_temp_agent_setpoint(dfs, roomid, agentid, ax):
+    dfs_room  = dfs["seeser"].loc[ dfs["seeser"].loc[:, "room"] == roomid ]
+    dfs_agent_dict = dfs["seesea"].loc[ dfs["seesea"].loc[:, "agent_nr"] == agentid ]
+    dfs_agnet = pd.DataFrame([ ast.literal_eval( action )
+                                for action
+                                in dfs["seesea"].reset_index().loc[:, "agent_actions"]
+                              ])
+    dfs_agnet.index = dfs_agent_dict.index
+    dfs_agent_mean  = dfs_agnet.loc[:, f"SPACE{roomid}-1 Zone Heating/Cooling-Mean Setpoint"]
+    dfs_agent_delta = dfs_agnet.loc[:, f"SPACE{roomid}-1 Zone Heating/Cooling-Delta Setpoint"]
+
+    dfs_room["temp"].plot(ax=ax, label="Real temperature")
+    (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Upper setpoint bound")
+    (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Lower setpoint bound")
+    if not ax is None: ax.legend()
+
+
 
