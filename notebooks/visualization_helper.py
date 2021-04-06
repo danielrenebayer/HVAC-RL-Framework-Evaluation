@@ -28,7 +28,7 @@ def DoW_ItoS(day_of_week_int):
         6: "So."}
     return day_of_week_dict[ day_of_week_int ]
 
-def select_week_and_episode(dfs, selected_episode, start):
+def select_week_and_episode(dfs, selected_episode, start, end = None):
     subdfs = {}
     subdfs["eees"]   = dfs["eees"].loc[    dfs["eees"].loc[:,"episode"]    == selected_episode ].set_index("step")
     subdfs["eeesea"] = dfs["seesea"].loc[  dfs["seesea"].loc[:,"episode"]  == selected_episode ].set_index("step")
@@ -41,7 +41,8 @@ def select_week_and_episode(dfs, selected_episode, start):
     subdfs["eees"]["datetime"]   = subdfs["sees"]["datetime"]
     subdfs["seesea"]["datetime"] = subdfs["sees"]["datetime"]
     subdfs["seeser"]["datetime"] = subdfs["sees"]["datetime"]
-    end = start + timedelta(days=7)
+    if end is None:
+        end = start + timedelta(days=7)
     subdfs["eees"]   = subdfs["eees"].loc[   subdfs["eees"]["datetime"]   >= start ]
     subdfs["sees"]   = subdfs["sees"].loc[   subdfs["sees"]["datetime"]   >= start ]
     subdfs["seesea"] = subdfs["seesea"].loc[ subdfs["seesea"]["datetime"] >= start ]
@@ -155,18 +156,22 @@ def plot_seesea_single_agent(dfs, selected_agent, ax=None):
             sum_of_outputs += 1
     return sum_of_outputs
 
-def plot_room_temp_agent_setpoint(dfs, roomid, agentid, ax):
+def plot_room_temp_agent_setpoint(dfs, roomid, roomnumber, agentid, ax):
     dfs_room  = dfs["seeser"].loc[ dfs["seeser"].loc[:, "room"] == roomid ]
     dfs_agent_dict = dfs["seesea"].loc[ dfs["seesea"].loc[:, "agent_nr"] == agentid ]
     dfs_agnet = pd.DataFrame([ ast.literal_eval( action )
                                 for action
-                                in dfs["seesea"].reset_index().loc[:, "agent_actions"]
+                                in dfs_agent_dict.reset_index().loc[:, "agent_actions"]
                               ])
     dfs_agnet.index = dfs_agent_dict.index
-    dfs_agent_mean  = dfs_agnet.loc[:, f"SPACE{roomid}-1 Zone Heating/Cooling-Mean Setpoint"]
-    dfs_agent_delta = dfs_agnet.loc[:, f"SPACE{roomid}-1 Zone Heating/Cooling-Delta Setpoint"]
+    if f"SPACE{roomnumber}-1 Zone Heating/Cooling-Mean Setpoint" in dfs_agnet.columns:
+        dfs_agent_mean  = dfs_agnet.loc[:, f"SPACE{roomnumber}-1 Zone Heating/Cooling-Mean Setpoint"]
+        dfs_agent_delta = dfs_agnet.loc[:, f"SPACE{roomnumber}-1 Zone Heating/Cooling-Delta Setpoint"]
+    else:
+        dfs_agent_mean  = dfs_agnet.loc[:, "Zone Heating/Cooling-Mean Setpoint"]
+        dfs_agent_delta = dfs_agnet.loc[:, "Zone Heating/Cooling-Delta Setpoint"]
 
-    dfs_room["temp"].plot(ax=ax, label="Real temperature")
+    dfs_room["temp"].plot(ax=ax, label=f"SPACE{roomnumber}-1 Real temperature")
     (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Upper setpoint bound")
     (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Lower setpoint bound")
     if not ax is None: ax.legend()
