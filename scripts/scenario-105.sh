@@ -14,7 +14,7 @@ python ../code/TrainingController.py \
 	--discount_factor 0.97 \
 	--use_cuda \
 	--episodes_count 80 \
-	--alternate_reward \
+	--reward_function "rulebased_roomtemp" \
 	--network_storage_frequency 20 \
 	--epsilon 0.05 \
 	--agent_w_l2 0.000001 \
