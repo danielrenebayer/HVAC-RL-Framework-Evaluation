@@ -1,5 +1,6 @@
 
 import os
+import re
 import ast
 import sqlite3
 from datetime import timedelta
@@ -59,17 +60,70 @@ def select_week_and_episode(dfs, selected_episode, start, end = None):
 
     return subdfs
 
-def plot_eees(dfs, ax):
+def get_runtime_overview_df(dfs1, dfs2, colname1="", colname2=""):
+    datadict = {}
+    datadict["Number of training episodes"] = [dfs1['eels'].loc[:, "time_cons"].count(), dfs2['eels'].loc[:, "time_cons"].count()]
+    datadict["Runtime in s"] = [dfs1['eels'].loc[:, "time_cons"].sum(), dfs2['eels'].loc[:, "time_cons"].sum()]
+    datadict["Runtime in h"] = [dfs1['eels'].loc[:, "time_cons"].sum()/3600, dfs2['eels'].loc[:, "time_cons"].sum()/3600]
+    datadict["Mean episode runtime in s"] = [dfs1['eels'].loc[:, "time_cons"].mean(), dfs2['eels'].loc[:, "time_cons"].mean()]
+
+    datadict["Mean episode runtime after eval. episode in s"] = [dfs1['eels'].loc[dfs1['eels'].loc[:, "eval_epoch"].shift(1) == "True", "time_cons"].mean(),
+                                                                 dfs2['eels'].loc[dfs2['eels'].loc[:, "eval_epoch"].shift(1) == "True", "time_cons"].mean()]
+    datadict["Mean episode runtime in no eval. episode in s"] = [dfs1['eels'].loc[dfs1['eels'].loc[:, "eval_epoch"]  == "False", "time_cons"].mean(),
+                                                                 dfs2['eels'].loc[dfs2['eels'].loc[:, "eval_epoch"]  == "False", "time_cons"].mean()]
+
+    return pd.DataFrame.from_dict(datadict, orient='index', columns=[colname1, colname2])
+
+def get_arguments_overview(colname1, colname2, checkpoint_dir1, checkpoint_dir2):
+    def prepaire_output_dict(options_file):
+        output_dict = {}
+        for line in options_file:
+            line2 = re.sub('\s+'," ",line)
+            lsplit = line2.split(' ')
+            default_changed = len(lsplit) > 2 and lsplit[2] == "[Default:"
+            default = None if not default_changed else lsplit[3].replace(']','')
+            output_dict[lsplit[0]] = [lsplit[1], default_changed, default]
+        return output_dict
+    def highlight_color(val):
+        color_left = ""
+        color_right= ""
+        if val.iloc[1]:
+            color_left = "background-color: orange"
+        if val.iloc[3]:
+            color_right = "background-color: orange"
+        return [color_left, color_left, "", color_right, color_right]
+    f1 = open(os.path.join(checkpoint_dir1, "options.txt"), "r")
+    dict1 = prepaire_output_dict(f1.readlines())
+    f1.close()
+    f2 = open(os.path.join(checkpoint_dir2, "options.txt"), "r")
+    dict2 = prepaire_output_dict(f2.readlines())
+    f2.close()
+    df1 = pd.DataFrame.from_dict(dict1, orient='index', columns=[colname1, colname1 + ' changed', 'default'])
+    df2 = pd.DataFrame.from_dict(dict2, orient='index', columns=[colname2, colname2 + ' changed', 'default'])
+    df2 = df2.loc[:, [colname2 + ' changed', colname2]]
+    df  = df1.join(df2)
+    return df.style.apply(highlight_color, axis=1)
+
+def plot_lr_epsilon(dfs, ax):
+    ax.plot( dfs['eels']["epsilon"], label="epsilon" )
+    ax.plot( dfs['eels']["lr"],      label="learning rate" )
+    ax.legend()
+
+def plot_eees_normal(dfs, ax):
+    dfs["eees"].loc[:, "reward"].plot(ax=ax[0], label="Reward, for each step")
+    dfs["eees"].loc[:, "energy_Wh"].plot(ax=ax[1], label="Energy consumption in Wh, for each step")
+    dfs["eees"].loc[:, "manual_stp_ch_n"].plot(ax=ax[2], label="Number of manual setpoint changes, for each step")
+    for i in range(3):
+        ax[i].legend()
+
+def plot_eees_mean_per_episode(dfs, ax):
     eees_mean = dfs["eees"].groupby('episode').mean()
     eees_sum  = dfs["eees"].groupby('episode').sum()
 
-    dfs["eees"].loc[:, "reward"].plot(ax=ax[0], label="Reward, for each step")
-    eees_mean.loc[:,   "reward"].plot(ax=ax[1], label="Reward, mean for each episode")
-    dfs["eees"].loc[:, "energy_Wh"].plot(ax=ax[2], label="Energy consumption in Wh, for each step")
-    eees_mean.loc[:,   "energy_Wh"].plot(ax=ax[3], label="Energy consumption in Wh, mean for each episode")
-    dfs["eees"].loc[:, "manual_stp_ch_n"].plot(ax=ax[4], label="Number of manual setpoint changes, for each step")
-    eees_sum.loc[:,    "manual_stp_ch_n"].plot(ax=ax[5], label="Number of manual setpoint changes, sum for each episode")
-    for i in range(6):
+    eees_mean.loc[:,   "reward"].plot(ax=ax[0], label="Reward, mean for each episode")
+    eees_mean.loc[:,   "energy_Wh"].plot(ax=ax[1], label="Energy consumption in Wh, mean for each episode")
+    eees_sum.loc[:,    "manual_stp_ch_n"].plot(ax=ax[2], label="Number of manual setpoint changes, sum for each episode")
+    for i in range(3):
         ax[i].legend()
 
 def plot_eeesea(dfs, ax):
@@ -167,13 +221,17 @@ def plot_room_temp_agent_setpoint(dfs, roomid, roomnumber, agentid, ax):
     if f"SPACE{roomnumber}-1 Zone Heating/Cooling-Mean Setpoint" in dfs_agnet.columns:
         dfs_agent_mean  = dfs_agnet.loc[:, f"SPACE{roomnumber}-1 Zone Heating/Cooling-Mean Setpoint"]
         dfs_agent_delta = dfs_agnet.loc[:, f"SPACE{roomnumber}-1 Zone Heating/Cooling-Delta Setpoint"]
-    else:
+    elif "Zone Heating/Cooling-Mean Setpoint" in dfs_agnet.columns:
         dfs_agent_mean  = dfs_agnet.loc[:, "Zone Heating/Cooling-Mean Setpoint"]
         dfs_agent_delta = dfs_agnet.loc[:, "Zone Heating/Cooling-Delta Setpoint"]
+    else:
+        dfs_agent_mean  = dfs_agnet.loc[:, "Zone Heating Setpoint"]
+        dfs_agent_delta = 0
 
     dfs_room["temp"].plot(ax=ax, label=f"SPACE{roomnumber}-1 Real temperature")
     (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Upper setpoint bound")
-    (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Lower setpoint bound")
+    if not type(dfs_agent_delta) == int:
+        (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Lower setpoint bound")
     if not ax is None: ax.legend()
 
 
