@@ -25,5 +25,9 @@ for i in $(seq 4); do
 	--epw_file ../../COBS/cobs/data/weathers/8.epw \
 	--episode_start_month 1 \
 	--continue_training
+    if ! (( $? == 0 )); then
+	echo "Error during scenario run."
+	exit 1
+    fi
 done
 
