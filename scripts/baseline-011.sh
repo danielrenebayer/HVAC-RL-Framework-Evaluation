@@ -17,6 +17,7 @@ python ../code/TrainingController.py \
 	--algorithm "rule-based" \
 	--lambda_rwd_energy 0.001 \
 	--lambda_rwd_mstpc 1.0 \
+	--idf_file $(realpath 5ZoneAirCooled_HigherWinterSetpoint.idf) \
 	--checkpoint_dir $checkpoint_dir
 
 
