@@ -67,6 +67,8 @@ def get_runtime_overview_df(dfs1, dfs2, colname1="", colname2=""):
     datadict["Runtime in h"] = [dfs1['eels'].loc[:, "time_cons"].sum()/3600, dfs2['eels'].loc[:, "time_cons"].sum()/3600]
     datadict["Mean episode runtime in s"] = [dfs1['eels'].loc[:, "time_cons"].mean(), dfs2['eels'].loc[:, "time_cons"].mean()]
 
+    datadict["Mean episode runtime during eval. episode in s"] = [dfs1['eels'].loc[dfs1['eels'].loc[:, "eval_epoch"] == "True", "time_cons"].mean(),
+                                                                 dfs2['eels'].loc[dfs2['eels'].loc[:, "eval_epoch"]  == "True", "time_cons"].mean()]
     datadict["Mean episode runtime after eval. episode in s"] = [dfs1['eels'].loc[dfs1['eels'].loc[:, "eval_epoch"].shift(1) == "True", "time_cons"].mean(),
                                                                  dfs2['eels'].loc[dfs2['eels'].loc[:, "eval_epoch"].shift(1) == "True", "time_cons"].mean()]
     datadict["Mean episode runtime in no eval. episode in s"] = [dfs1['eels'].loc[dfs1['eels'].loc[:, "eval_epoch"]  == "False", "time_cons"].mean(),
@@ -135,11 +137,18 @@ def plot_eeesea(dfs, ax):
 
     eeesea_mean.loc[:, "loss"].plot(ax=ax[0],   label="Mean critic loss per episode")
     eeesea_mean.loc[20:, "loss"].plot(ax=ax[1], label="Mean critic loss per episode (from ep. 20 on)")
-    eeesea_mean.loc[:, "q_st2"].plot(ax=ax[2],  label="Mean Q-value per episode")
-    eeesea_mean.loc[20:, "q_st2"].plot(ax=ax[3],label="Mean Q-value per episode (from ep. 20 on)")
-    for i in range(4):
-        ax[i].legend()
-    if "J" in eeesea_mean.columns:
+    
+    if len(eeesea_mean.loc[:, "q_st2"].unique()) <= 1:
+        # only 0 values, nothing interesting
+        eeesea_mean.loc[20:, "loss"].plot(ax=ax[2], logy=True, label="Log Mean critic loss per episode (from ep. 20 on)")
+        for i in range(3):
+            ax[i].legend()
+    else:
+        eeesea_mean.loc[:, "q_st2"].plot(ax=ax[2],  label="Mean Q-value per episode")
+        eeesea_mean.loc[20:, "q_st2"].plot(ax=ax[3],label="Mean Q-value per episode (from ep. 20 on)")
+        for i in range(4):
+            ax[i].legend()
+    if "J" in eeesea_mean.columns and len(eeesea_mean.loc[20:, "J"].unique()) > 1:
         eeesea_mean.loc[20:, "J"].plot(ax=ax[4],label="Mean J-value per episode (from ep. 20 on)")
         ax[4].legend()
 
