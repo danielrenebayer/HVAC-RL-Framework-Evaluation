@@ -122,9 +122,14 @@ def plot_eees_mean_per_episode(dfs, ax):
     eees_mean = dfs["eees"].groupby('episode').mean()
     eees_sum  = dfs["eees"].groupby('episode').sum()
 
+    evaluation_episodes = dfs['sees'].loc[:, "episode"].unique()
+
     eees_mean.loc[:,   "reward"].plot(ax=ax[0], label="Reward, mean for each episode")
     eees_mean.loc[:,   "energy_Wh"].plot(ax=ax[1], label="Energy consumption in Wh, mean for each episode")
     eees_sum.loc[:,    "manual_stp_ch_n"].plot(ax=ax[2], label="Number of manual setpoint changes, sum for each episode")
+    eees_mean.loc[evaluation_episodes, "reward"].plot(ax=ax[0], label="Reward, mean for evaluation episodes")
+    eees_mean.loc[evaluation_episodes, "energy_Wh"].plot(ax=ax[1], label="Energy consumption in Wh, mean for evaluation episodes")
+    eees_sum.loc[ evaluation_episodes, "manual_stp_ch_n"].plot(ax=ax[2], label="Number of manual setpoint changes, sum for evaluation episodes")
     for i in range(3):
         ax[i].legend()
 
