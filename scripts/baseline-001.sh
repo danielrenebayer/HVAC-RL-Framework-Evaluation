@@ -18,6 +18,7 @@ python ../code/TrainingController.py \
 	--lambda_rwd_energy 0.001 \
 	--lambda_rwd_mstpc 1.0 \
 	--checkpoint_dir $checkpoint_dir \
+	--idf_file $(realpath 5ZoneAirCooled_HigherWinterSetpoint.idf) \
 	--epw_file ../../COBS/cobs/data/weathers/8.epw \
 	--episode_start_month 1
 

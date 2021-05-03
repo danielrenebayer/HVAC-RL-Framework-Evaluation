@@ -18,6 +18,7 @@ python ../code/TrainingController.py \
 	--lambda_rwd_energy 0.001 \
 	--lambda_rwd_mstpc 1.0 \
 	--checkpoint_dir $checkpoint_dir \
+	--idf_file $(realpath 5ZoneAirCooled_HigherWinterSetpoint.idf) \
 	--rulebased_setpoint_unoccu_mean 26.0 \
 	--rulebased_setpoint_unoccu_delta 4.0 \
 	--rulebased_setpoint_occu_mean 17.5 \
