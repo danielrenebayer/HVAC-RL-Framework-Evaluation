@@ -14,7 +14,7 @@ checkpoint_dir=$(realpath "../checkpoints/b011")
 mkdir -p $checkpoint_dir
 
 python ../code/TrainingController.py \
-	--algorithm "rule-based" \
+	--algorithm "baseline_rule-based" \
 	--lambda_rwd_energy 0.001 \
 	--lambda_rwd_mstpc 1.0 \
 	--idf_file $(realpath 5ZoneAirCooled_HigherWinterSetpoint.idf) \
