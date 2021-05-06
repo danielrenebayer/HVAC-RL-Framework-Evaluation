@@ -10,7 +10,9 @@ import ast
 import sqlite3
 from datetime import timedelta
 
+import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 tables = ["eels", "sees", "seesea", "sees_er"]
 
@@ -59,6 +61,20 @@ def select_week_and_episode(dfs, selected_episode, start, end = None):
 
     return subdfs
 
+def select_week_and_episode_for_dfs_list(alldfs, selected_episodes, selected_weeks):
+    subdfs = []
+    for idx, dfs in enumerate(alldfs):
+        subdfs1 = select_week_and_episode(dfs, selected_episodes[idx], selected_weeks[idx])
+        subdfs.append( subdfs1 )
+    return subdfs
+
+def select_week_and_episode_with_end_for_dfs_list(alldfs, selected_episodes, selected_periods_start, selected_periods_end):
+    subdfs = []
+    for idx, dfs in enumerate(alldfs):
+        subdfs1 = select_week_and_episode(dfs, selected_episodes[idx], selected_periods_start[idx], selected_periods_end[idx])
+        subdfs.append( subdfs1 )
+    return subdfs
+
 def get_runtime_overview_df(dfs1, dfs2, colname1="", colname2=""):
     datadict = {}
     datadict["Number of training episodes"] = [dfs1['eels'].loc[:, "time_cons"].count(), dfs2['eels'].loc[:, "time_cons"].count()]
@@ -74,6 +90,40 @@ def get_runtime_overview_df(dfs1, dfs2, colname1="", colname2=""):
                                                                  dfs2['eels'].loc[dfs2['eels'].loc[:, "eval_epoch"]  == "False", "time_cons"].mean()]
 
     return pd.DataFrame.from_dict(datadict, orient='index', columns=[colname1, colname2])
+
+def compute_last_available_eval_episode(alldfs):
+    last_available_eval_episodes = []
+    for idx, dfs in enumerate(alldfs):
+        last_eval_episode = dfs['sees'].loc[:, "episode"].unique()[-1]
+        last_available_eval_episodes.append(last_eval_episode)
+        print(f"Last available evaluation episode for dfs{idx}: {last_eval_episode:6}")
+    return last_available_eval_episodes
+
+def print_reward_informations(alldfs, selected_episodes):
+    print("First complete week of evaluation episode")
+    for idx, dfs in enumerate(alldfs):
+        econs = dfs['eels'].iloc[0]['sum_energy_Wh']/1000
+        nstpc = dfs['eels'].iloc[0]['sum_manual_stp_ch_n'] if 'sum_manual_stp_ch_n' in dfs['eels'].columns else "?"
+        print(f"For episode {selected_episodes[idx]:5}: Energy consumption: {econs:10.2f} kWh; Numer of setpoint changes: {nstpc:8}")
+    print()
+    print("Mean values for episode ...")
+    for idx, dfs in enumerate(alldfs):
+        mrwd  = dfs['eels'].iloc[0]['mean_reward']
+        nstpc = dfs['eels'].iloc[0]['mean_manual_stp_ch_n']
+        econs = dfs['eels'].iloc[0]['mean_energy_Wh']
+        print(f"... {selected_episodes[idx]:5}: Reward: {mrwd:8.5f} kWh; Setpoint change magnit.: {nstpc:8.5f}; Energy cons.: {econs:8.5f}")
+
+def get_available_rooms_and_agents(alldfs):
+    subdfs_rooms  = []
+    subdfs_agents = []
+    for idx, sdfs in enumerate(alldfs):
+        sdfs_rooms  = sdfs["seeser"].loc[:, "room"].unique()
+        sdfs_agents = sdfs["seesea"].loc[:, "agent_nr"].unique()
+        subdfs_rooms.append(sdfs_rooms)
+        subdfs_agents.append(sdfs_agents)
+        print(f"Available Rooms     in (sub-)dfs{idx}: {sdfs_rooms}")
+        print(f"Available Agent IDs in (sub-)dfs{idx}: {sdfs_agents}", "\n")
+    return subdfs_rooms, subdfs_agents
 
 def get_arguments_overview(colname1, colname2, checkpoint_dir1, checkpoint_dir2):
     def prepaire_output_dict(options_file):
@@ -144,25 +194,29 @@ def plot_eels_agent_details(dfs, ax):
         dfs['eels'].loc[20:, "J_mean"].plot(ax=ax[4],label="Mean J-value per episode (from ep. 20 on)")
         ax[4].legend()
 
-def plot_eels_agent_details_frobnorm(dfs, ax):
-    dfs['eels'].loc[:, "frobnorm_critic_matr_mean"].plot(ax=ax[0], title="mean Frobenius norm of critic FC-matricies")
-    dfs['eels'].loc[:, "frobnorm_critic_bias_mean"].plot(ax=ax[1], title="mean Frobenius norm of critic FC-biases")
-    dfs['eels'].loc[:, "frobnorm_agent_matr_mean"].plot(ax=ax[2],  title="mean Frobenius norm of agent FC-matricies")
-    dfs['eels'].loc[:, "frobnorm_agent_bias_mean"].plot(ax=ax[3],  title="mean Frobenius norm of agent FC-biases")
+def plot_eels_agent_details_frobnorm(dfs, ax, with_critics=True):
+    idx_add = 0
+    if with_critics:
+        dfs['eels'].loc[:, "frobnorm_critic_matr_mean"].plot(ax=ax[0], title="mean Frobenius norm of critic FC-matricies")
+        dfs['eels'].loc[:, "frobnorm_critic_bias_mean"].plot(ax=ax[1], title="mean Frobenius norm of critic FC-biases")
+        idx_add = 2
+    dfs['eels'].loc[:, "frobnorm_agent_matr_mean"].plot(ax=ax[0 + idx_add],  title="mean Frobenius norm of agent FC-matricies")
+    dfs['eels'].loc[:, "frobnorm_agent_bias_mean"].plot(ax=ax[1 + idx_add],  title="mean Frobenius norm of agent FC-biases")
 
 def plot_sees_only_mstpc(dfs, ax):
     dfs["sees"].loc[:, "manual_stp_ch_n"].plot(ax=ax)
     ax.legend()
 
 def plot_sees_reward(dfs, ax):
-    dfs['sees'].loc[:,   "reward"].plot(ax=ax[0])
+    l1 = dfs['sees'].loc[:,   "reward"].plot(ax=ax[0], label="Reward", color="tab:purple")
     ax[0].set_ylabel("Reward")
-    dfs['sees'].loc[:,   "energy_Wh"].plot(ax=ax[1])
-    ax[1].set_ylabel("Energy consumption in Wh (for a complete episode)")
-    dfs['sees'].loc[:,    "manual_stp_ch_n"].plot(ax=ax[2])
-    ax[2].set_ylabel("Magnitude of manual setpoint changes")
+    l2 = dfs['sees'].loc[:,   "energy_Wh"].plot(ax=ax[1], label="Energy consumption in Wh", color="tab:olive")
+    ax[1].set_ylabel("Wh")
+    l3 = dfs['sees'].loc[:,    "manual_stp_ch_n"].plot(ax=ax[2], label="Magnitude of manual setpoint changes", color="tab:cyan")
     for i in range(3):
         ax[i].set_xlabel("Epoche / Timestep")
+        ax[i].legend()
+    return l1, l2, l3
 
 def plot_sees(dfs, ax):
     dfs["sees"]["outdoor_temp"].plot(ax=ax[0], label="outdoor_temp")
@@ -233,20 +287,130 @@ def plot_room_temp_agent_setpoint(dfs, room, agentid, ax, fill_between = False):
         dfs_agent_mean  = dfs_agnet.loc[:, "Zone Heating Setpoint"]
         dfs_agent_delta = 0
 
-    line1 = dfs_room["temp"].plot(ax=ax, label="Real room temperature")
-    line2 = (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Upper setpoint bound")
-    if not type(dfs_agent_delta) == int:
-        line3 = (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Lower setpoint bound")
+    if "dfs_agent_delta" in locals().keys():
+        dfs_room["temp"].plot(ax=ax, label="Real room temperature")
+        (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Agent upper setpoint bound")
     else:
-        line3 = None
+        (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Agent heating setpoint")
+
     current_ylim = ax.get_ylim()
     dfs_room_ttemp = dfs_room["target_temp"]
-    line4 = dfs_room_ttemp.plot(ax=ax, label="Target room temperature")
+    dfs_room_ttemp.plot(ax=ax, label="Target room temperature", color="tab:red")
     if fill_between:
-        line5 = ax.fill_between(dfs_room_ttemp.index, dfs_room_ttemp-1, dfs_room_ttemp+1, alpha=0.5, color="red")
+        ax.fill_between(dfs_room_ttemp.index, dfs_room_ttemp-1, dfs_room_ttemp+1, alpha=0.5, color="red")
     ax.set_ylim(current_ylim)
     ax.set_ylabel(room)
 
-    return line1, line2, line3, line4
+
+
+
+
+#
+# below here there are functions, that do not create individual plots,
+# but they create a complete group of plots
+#
+
+
+def complete_plot_epsilon(alldfs, fig_width):
+    pl, axes = plt.subplots(nrows=1, ncols=len(alldfs), figsize=(fig_width,4), sharex=False)
+    for idx, dfs in enumerate(alldfs):
+        plot_lr_epsilon(dfs, axes[idx])
+    return pl, axes
+
+
+def complete_plot_reward_stpc_econs(alldfs, fig_width):
+    pl, axes = plt.subplots(nrows=3, ncols=len(alldfs), figsize=(fig_width,10), sharex=False)
+    for idx, dfs in enumerate(alldfs):
+        plot_eels_reward(dfs, axes[:, idx])
+    return pl, axes
+
+
+def complete_plot_losses(alldfs, fig_width, with_agents=True):
+    if with_agents:
+        pl, axes = plt.subplots(nrows=5, ncols=len(alldfs), figsize=(fig_width,8), sharex=True)
+    else:
+        pl, axes = plt.subplots(nrows=3, ncols=len(alldfs), figsize=(fig_width,8), sharex=True)
+    for idx, dfs in enumerate(alldfs):
+        plot_eels_agent_details(dfs, axes[:, idx])
+    return pl, axes
+
+
+def complete_plot_frobenius_norms(alldfs, fig_width, with_critics=True):
+    if with_critics:
+        pl, axes = plt.subplots(nrows=4, ncols=len(alldfs), figsize=(fig_width,6))
+    else:
+        pl, axes = plt.subplots(nrows=2, ncols=len(alldfs), figsize=(fig_width,5))
+    for idx, dfs in enumerate(alldfs):
+        plot_eels_agent_details_frobnorm(dfs, axes[:, idx], with_critics)
+    return pl, axes
+
+
+def complete_plot_weather_information(alldfs, fig_width):
+    pl, axes = plt.subplots(nrows=5, ncols=len(alldfs), figsize=(fig_width,6), sharex=True)
+    for idx, dfs in enumerate(alldfs):
+        plot_sees(dfs, axes[:, idx])
+    return pl, axes
+
+
+def complete_plot_number_of_stp_ch(alldfs, fig_width):
+    pl, axes = plt.subplots(nrows=1, ncols=len(alldfs), figsize=(fig_width,2))
+    for idx, dfs in enumerate(alldfs):
+        plot_sees_only_mstpc(dfs, axes[idx])
+    return pl, axes
+
+
+def complete_plot_room_status(alldfs, fig_width):
+    pl, axes = plt.subplots(nrows=4, ncols=len(alldfs), figsize=(fig_width,12), sharex=True)
+    for idx, dfs in enumerate(alldfs):
+        plot_seeser_all_rooms(dfs, axes[:, idx])
+    # for individual rooms use plot_seeser(subdfs, room_id, ax)
+    return pl, axes
+
+
+def complete_plot_all_agent_outputs(alldfs, fig_width, subdfs_agents):
+    max_n_agents = max(2, max([len(sdfs_agents) for sdfs_agents in subdfs_agents]))
+    nrows = max_n_agents * max([sdfs['seesea'].iloc[0]["agent_actions"].count(":") for sdfs in alldfs])
+    pl, axes = plt.subplots(nrows=nrows, ncols=len(alldfs), figsize=(fig_width,nrows), sharex=True)
+    for a in axes.flatten():
+        a.ticklabel_format(useOffset=False, style='plain')
+    for idx, sdfs in enumerate(alldfs):
+        plot_seesea(sdfs, axes[:, idx])
+    return pl, axes
+
+
+def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents):
+    if not type(subdfs) is list:
+        subdfs       = [subdfs]
+        subdfs_rooms = [subdfs_rooms]
+        subdfs_agents= [subdfs_agents]
+
+    max_n_agents = max(2, max([len(sdfs_agents) for sdfs_agents in subdfs_agents]))
+    p, axes = plt.subplots(nrows=max_n_agents+3, ncols=len(subdfs), figsize=(fig_width,3*max_n_agents), sharex=True)
+    legend_handles = []
+    legend_labels  = []
+
+    if len(axes.shape) == 1:
+        axes = axes[:, np.newaxis]
+
+    # plot rewards
+    for idx, dfs in enumerate(subdfs):
+        plot_sees_reward(subdfs[idx], axes[:, idx])
+
+    # plot for every room
+    for idx, sdfs in enumerate(subdfs):
+        for idx2, room, agentid in zip(range(len(subdfs_rooms[idx])), subdfs_rooms[idx], subdfs_agents[idx]):
+            idx2offset = idx2+3
+            plot_room_temp_agent_setpoint(sdfs, room, agentid, axes[idx2offset, idx], True)
+            handles, labels = axes[idx2offset, idx].get_legend_handles_labels()
+            legend_handles.extend(handles)
+            legend_labels.extend(labels)
+
+    p.legend(handles, labels, loc='lower center', ncol=2)
+    #p.subplots_adjust(right=0.7)
+    return p, axes
+
+
+def complete_plot_(alldfs, fig_width):
+    return pl, axes
 
 
