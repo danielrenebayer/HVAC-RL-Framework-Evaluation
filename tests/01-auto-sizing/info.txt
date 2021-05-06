@@ -1,0 +1,7 @@
+
+Default Simulation:
+	nothing changed, as Baseline 001.
+
+Simulation with higher setpoints:
+	Setpoint for winter design days set to 27 degree C, instead of 22.5 degree C.
+
