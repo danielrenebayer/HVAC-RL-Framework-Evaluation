@@ -344,6 +344,8 @@ def plot_room_temp_agent_setpoint(dfs, room, agentid, ax, fill_between = False):
 
 def complete_plot_epsilon(alldfs, fig_width):
     pl, axes = plt.subplots(nrows=1, ncols=len(alldfs), figsize=(fig_width,4), sharex=False)
+    if not type(axes) is np.ndarray:
+        axes = np.array([axes])
     for idx, dfs in enumerate(alldfs):
         plot_lr_epsilon(dfs, axes[idx])
     return pl, axes
@@ -351,6 +353,8 @@ def complete_plot_epsilon(alldfs, fig_width):
 
 def complete_plot_reward_stpc_econs(alldfs, fig_width):
     pl, axes = plt.subplots(nrows=3, ncols=len(alldfs), figsize=(fig_width,10), sharex=False)
+    if len(axes.shape) == 1:
+        axes = axes[:, np.newaxis]
     for idx, dfs in enumerate(alldfs):
         plot_eels_reward(dfs, axes[:, idx])
         handles, labels = axes[0, idx].get_legend_handles_labels()
@@ -363,6 +367,8 @@ def complete_plot_losses(alldfs, fig_width, with_agents=True):
         pl, axes = plt.subplots(nrows=5, ncols=len(alldfs), figsize=(fig_width,8), sharex=True)
     else:
         pl, axes = plt.subplots(nrows=3, ncols=len(alldfs), figsize=(fig_width,8), sharex=True)
+    if len(axes.shape) == 1:
+        axes = axes[:, np.newaxis]
     for idx, dfs in enumerate(alldfs):
         plot_eels_agent_details(dfs, axes[:, idx])
         handles, labels = axes[0, idx].get_legend_handles_labels()
@@ -378,6 +384,8 @@ def complete_plot_frobenius_norms(alldfs, fig_width, with_critics=True):
         pl, axes = plt.subplots(nrows=4, ncols=len(alldfs), figsize=(fig_width,6))
     else:
         pl, axes = plt.subplots(nrows=2, ncols=len(alldfs), figsize=(fig_width,5))
+    if len(axes.shape) == 1:
+        axes = axes[:, np.newaxis]
     for idx, dfs in enumerate(alldfs):
         plot_eels_agent_details_frobnorm(dfs, axes[:, idx], with_critics)
     return pl, axes
@@ -385,6 +393,8 @@ def complete_plot_frobenius_norms(alldfs, fig_width, with_critics=True):
 
 def complete_plot_weather_information(alldfs, fig_width):
     pl, axes = plt.subplots(nrows=5, ncols=len(alldfs), figsize=(fig_width,6), sharex=True)
+    if len(axes.shape) == 1:
+        axes = axes[:, np.newaxis]
     for idx, dfs in enumerate(alldfs):
         plot_sees(dfs, axes[:, idx])
     return pl, axes
@@ -392,6 +402,8 @@ def complete_plot_weather_information(alldfs, fig_width):
 
 def complete_plot_number_of_stp_ch(alldfs, fig_width):
     pl, axes = plt.subplots(nrows=1, ncols=len(alldfs), figsize=(fig_width,2))
+    if not type(axes) is np.ndarray:
+        axes = np.array([axes])
     for idx, dfs in enumerate(alldfs):
         plot_sees_only_mstpc(dfs, axes[idx])
     return pl, axes
@@ -399,6 +411,8 @@ def complete_plot_number_of_stp_ch(alldfs, fig_width):
 
 def complete_plot_room_status(alldfs, fig_width):
     pl, axes = plt.subplots(nrows=4, ncols=len(alldfs), figsize=(fig_width,12), sharex=True)
+    if len(axes.shape) == 1:
+        axes = axes[:, np.newaxis]
     for idx, dfs in enumerate(alldfs):
         plot_seeser_all_rooms(dfs, axes[:, idx])
     # for individual rooms use plot_seeser(subdfs, room_id, ax)
@@ -409,6 +423,8 @@ def complete_plot_all_agent_outputs(alldfs, fig_width, subdfs_agents):
     max_n_agents = max(2, max([len(sdfs_agents) for sdfs_agents in subdfs_agents]))
     nrows = max_n_agents * max([sdfs['seesea'].iloc[0]["agent_actions"].count(":") for sdfs in alldfs])
     pl, axes = plt.subplots(nrows=nrows, ncols=len(alldfs), figsize=(fig_width,nrows), sharex=True)
+    if len(axes.shape) == 1:
+        axes = axes[:, np.newaxis]
     for a in axes.flatten():
         a.ticklabel_format(useOffset=False, style='plain')
     for idx, sdfs in enumerate(alldfs):
@@ -447,8 +463,5 @@ def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents)
     #p.subplots_adjust(right=0.7)
     return p, axes
 
-
-def complete_plot_(alldfs, fig_width):
-    return pl, axes
 
 
