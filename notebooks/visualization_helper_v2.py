@@ -125,7 +125,7 @@ def get_available_rooms_and_agents(alldfs):
         print(f"Available Agent IDs in (sub-)dfs{idx}: {sdfs_agents}", "\n")
     return subdfs_rooms, subdfs_agents
 
-def get_arguments_overview(colname1, colname2, checkpoint_dir1, checkpoint_dir2):
+def get_arguments_overview(dirnames, only_with_different_vals = True):
     def prepaire_output_dict(options_file):
         output_dict = {}
         for line in options_file:
@@ -133,6 +133,8 @@ def get_arguments_overview(colname1, colname2, checkpoint_dir1, checkpoint_dir2)
             lsplit = line2.split(' ')
             default_changed = len(lsplit) > 2 and lsplit[2] == "[Default:"
             default = None if not default_changed else lsplit[3].replace(']','')
+            if lsplit[0] == "checkpoint_dir" or lsplit[0] == "idf_file" or lsplit[0] == "epw_file":
+                continue
             output_dict[lsplit[0]] = [lsplit[1], default_changed, default]
         return output_dict
     def highlight_color(val):
@@ -143,17 +145,35 @@ def get_arguments_overview(colname1, colname2, checkpoint_dir1, checkpoint_dir2)
         if val.iloc[3]:
             color_right = "background-color: orange"
         return [color_left, color_left, "", color_right, color_right]
-    f1 = open(os.path.join(checkpoint_dir1, "options.txt"), "r")
-    dict1 = prepaire_output_dict(f1.readlines())
-    f1.close()
-    f2 = open(os.path.join(checkpoint_dir2, "options.txt"), "r")
-    dict2 = prepaire_output_dict(f2.readlines())
-    f2.close()
-    df1 = pd.DataFrame.from_dict(dict1, orient='index', columns=[colname1, colname1 + ' changed', 'default'])
-    df2 = pd.DataFrame.from_dict(dict2, orient='index', columns=[colname2, colname2 + ' changed', 'default'])
-    df2 = df2.loc[:, [colname2 + ' changed', colname2]]
-    df  = df1.join(df2)
-    return df.style.apply(highlight_color, axis=1)
+
+    argument_dfs = []
+    for checkp_dirname in dirnames:
+        fl = open(os.path.join(checkp_dirname, "options.txt"), "r")
+        dict1 = prepaire_output_dict(fl.readlines())
+        fl.close()
+        scenario_name = checkp_dirname.split("/")[2]
+        df1 = pd.DataFrame.from_dict(dict1, orient='index', columns=[scenario_name, scenario_name + ' changed', 'default'])
+        df1 = df1.loc[:, [scenario_name]]
+        argument_dfs.append(df1)
+
+    fulldfs = argument_dfs[0]
+    if len(argument_dfs) > 1:
+        for idx, df2 in enumerate(argument_dfs[1:]):
+            #df2_selected_cols = list(df2.columns)
+            #df2_selected_cols.remove('default')
+            #df2 = df2.loc[:, df2_selected_cols]
+            fulldfs = fulldfs.join(df2, rsuffix="_"+str(idx+2))
+    #fulldfs_cols = list(fulldfs.columns)
+    #fulldfs_cols.remove('default')
+    #return fulldfs.loc[:, fulldfs_cols]
+    if only_with_different_vals:
+        indexes_with_different_vals = []
+        for idx, data in fulldfs.iterrows():
+            if len(data.unique()) > 1:
+                indexes_with_different_vals.append(idx)
+        return fulldfs.loc[indexes_with_different_vals, :]
+    return fulldfs
+    #return df.style.apply(highlight_color, axis=1)
 
 def plot_lr_epsilon(dfs, ax):
     ax.plot( dfs['eels']["epsilon"], label="epsilon" )
