@@ -166,30 +166,41 @@ def plot_eels_reward(dfs, ax):
     dfs['eels'].loc[:,   "mean_reward"].plot(ax=ax[0], label="all episodes")
     ax[0].set_ylabel("Mean Reward")
     dfs['eels'].loc[:,   "sum_energy_Wh"].plot(ax=ax[1], label="all episodes")
-    ax[1].set_ylabel("Energy consumption in Wh (for a complete episode)")
+    ax[1].set_ylabel("Energy consumption in Wh\n(for a complete episode)")
     dfs['eels'].loc[:,    "mean_manual_stp_ch_n"].plot(ax=ax[2], label="all episodes")
-    ax[2].set_ylabel("Magnitude of manual setpoint changes")
+    ax[2].set_ylabel("Magnitude of\nmanual setpoint changes")
     dfs['eels'].loc[evaluation_episodes, "mean_reward"].plot(ax=ax[0], label="evaluation episodes")
     dfs['eels'].loc[evaluation_episodes, "sum_energy_Wh"].plot(ax=ax[1], label="evaluation episodes")
     dfs['eels'].loc[ evaluation_episodes, "mean_manual_stp_ch_n"].plot(ax=ax[2], label="evaluation episodes")
+    dfs['eels'].loc[evaluation_episodes, "mean_reward"].rolling(window=30, min_periods=0).mean().plot(ax=ax[0], label="rolling mean for evaluation episodes", color="tab:red")
+    dfs['eels'].loc[evaluation_episodes, "sum_energy_Wh"].rolling(window=30, min_periods=0).mean().plot(ax=ax[1], label="rolling mean for evaluation episodes", color="tab:red")
+    dfs['eels'].loc[evaluation_episodes, "mean_manual_stp_ch_n"].rolling(window=30, min_periods=0).mean().plot(ax=ax[2], label="rolling mean for evaluation episodes", color="tab:red")
     for i in range(3):
-        ax[i].legend()
+        #ax[i].legend()
         ax[i].set_xlabel("Episode")
 
 def plot_eels_agent_details(dfs, ax):
-    dfs['eels'].loc[:, "loss_mean"].plot(ax=ax[0],   label="Mean critic loss per episode")
-    dfs['eels'].loc[20:, "loss_mean"].plot(ax=ax[1], label="Mean critic loss per episode (from ep. 20 on)")
+    dfs['eels'].loc[:, "loss_mean"].plot(ax=ax[0],   label="Mean per episode", color="tab:orange")
+    dfs['eels'].loc[20:, "loss_mean"].plot(ax=ax[1], label="Mean per episode", color="tab:olive")
+    dfs['eels'].loc[:, "loss_mean"].rolling(window=30, min_periods=0).mean().plot(ax=ax[0],   label="Rolling mean per episode", color="tab:red")
+    dfs['eels'].loc[20:, "loss_mean"].rolling(window=30, min_periods=0).mean().plot(ax=ax[1], label="Rolling mean per episode (from ep. 20 on)", color="tab:green")
+    ax[0].set_ylabel("Mean critic loss")
+    ax[1].set_ylabel("Mean critic loss")
     
     if len(dfs['eels'].loc[:, "q_st2_mean"].unique()) <= 1:
         # only 0 values, nothing interesting
-        dfs['eels'].loc[20:, "loss_mean"].plot(ax=ax[2], logy=True, label="Log Mean critic loss per episode (from ep. 20 on)")
-        for i in range(3):
-            ax[i].legend()
+        dfs['eels'].loc[20:, "loss_mean"].plot(ax=ax[2], logy=True, label="Mean per episode (from ep. 20 on)", color="tab:olive")
+        dfs['eels'].loc[20:, "loss_mean"].rolling(window=30, min_periods=0).mean().plot(ax=ax[2], logy=True, label="Rolling mean per episode (from ep. 20 on)", color="tab:green")
+        ax[2].set_ylabel("Log mean critic loss")
+        #for i in range(3):
+        #    ax[i].legend()
     else:
         dfs['eels'].loc[:, "q_st2_mean"].plot(ax=ax[2],  label="Mean Q-value per episode")
         dfs['eels'].loc[20:, "q_st2_mean"].plot(ax=ax[3],label="Mean Q-value per episode (from ep. 20 on)")
-        for i in range(4):
-            ax[i].legend()
+        #for i in range(4):
+        #    ax[i].legend()
+        ax[2].legend()
+        ax[3].legend()
     if len(dfs['eels'].loc[20:, "J_mean"].unique()) > 1:
         dfs['eels'].loc[20:, "J_mean"].plot(ax=ax[4],label="Mean J-value per episode (from ep. 20 on)")
         ax[4].legend()
@@ -322,6 +333,8 @@ def complete_plot_reward_stpc_econs(alldfs, fig_width):
     pl, axes = plt.subplots(nrows=3, ncols=len(alldfs), figsize=(fig_width,10), sharex=False)
     for idx, dfs in enumerate(alldfs):
         plot_eels_reward(dfs, axes[:, idx])
+        handles, labels = axes[0, idx].get_legend_handles_labels()
+    pl.legend(handles, labels, loc='lower center', ncol=3)
     return pl, axes
 
 
@@ -332,6 +345,11 @@ def complete_plot_losses(alldfs, fig_width, with_agents=True):
         pl, axes = plt.subplots(nrows=3, ncols=len(alldfs), figsize=(fig_width,8), sharex=True)
     for idx, dfs in enumerate(alldfs):
         plot_eels_agent_details(dfs, axes[:, idx])
+        handles, labels = axes[0, idx].get_legend_handles_labels()
+        handles2,labels2= axes[1, idx].get_legend_handles_labels()
+        handles.extend(handles2)
+        labels.extend(labels2)
+    pl.legend(handles, labels, loc='lower center', ncol=2)
     return pl, axes
 
 
