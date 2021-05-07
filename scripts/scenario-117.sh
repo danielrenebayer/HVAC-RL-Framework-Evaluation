@@ -8,24 +8,26 @@ checkpoint_dir=$(realpath "../checkpoints/s117")"/${datestr}"
 
 mkdir -p $checkpoint_dir
 
-for i in $(seq 310); do
+for i in $(seq 350); do
     python ../code/TrainingController.py \
 	--algorithm ddqn \
-	--model "Building_5ZoneAirCooled_SingleSetpoint" \
-	--shared_network_per_agent_class \
+	--model "Building_5ZoneAirCooled_SingleSetpoint_SingleAgent" \
 	--ts_per_hour 1 \
-	--lr 0.022 \
-	--discount_factor 0.91 \
+	--eplus_storage_mode \
+	--lr 0.01 \
+	--discount_factor 0.7 \
 	--batch_size 256 \
-	--use_cuda \
 	--episodes_count 88 \
-	--lambda_rwd_energy 0.0001 \
-	--lambda_rwd_mstpc 1.0 \
+	--reward_offset 0.2 \
+	--reward_scale 0.125 \
+	--stp_reward_function "quadratic" \
+	--reward_function "rulebased_agent_output" \
 	--network_storage_frequency 88 \
 	--target_network_update_freq 6 \
 	--epsilon 0.05 \
-	--epsilon_final_step 26000 \
-	--agent_w_l2 0.000007 \
+	--epsilon_final_step 30000 \
+	--agent_network "2HiddenLayer,Trapezium" \
+	--agent_w_l2 0.0000015 \
 	--checkpoint_dir $checkpoint_dir \
 	--idf_file $(realpath 5ZoneAirCooled_HigherWinterSetpoint.idf) \
 	--epw_file ../../COBS/cobs/data/weathers/8.epw \
