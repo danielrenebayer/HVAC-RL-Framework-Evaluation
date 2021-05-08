@@ -201,7 +201,7 @@ def plot_eels_reward(dfs, ax):
 
 def plot_eels_agent_details(dfs, ax):
     dfs['eels'].loc[:, "loss_mean"].plot(ax=ax[0],   label="Mean per episode", color="tab:orange")
-    dfs['eels'].loc[20:, "loss_mean"].plot(ax=ax[1], label="Mean per episode", color="tab:olive")
+    dfs['eels'].loc[20:, "loss_mean"].plot(ax=ax[1], label="Mean per episode (from ep. 20 on)", color="tab:olive")
     dfs['eels'].loc[:, "loss_mean"].rolling(window=30, min_periods=0).mean().plot(ax=ax[0],   label="Rolling mean per episode", color="tab:red")
     dfs['eels'].loc[20:, "loss_mean"].rolling(window=30, min_periods=0).mean().plot(ax=ax[1], label="Rolling mean per episode (from ep. 20 on)", color="tab:green")
     ax[0].set_ylabel("Mean critic loss")
@@ -316,13 +316,14 @@ def plot_room_temp_agent_setpoint(dfs, room, agentid, ax, fill_between = False):
         dfs_agent_delta = dfs_agnet.loc[:, "Zone Heating/Cooling-Delta Setpoint"]
     else:
         dfs_agent_mean  = dfs_agnet.loc[:, "Zone Heating Setpoint"]
-        dfs_agent_delta = 0
+        #dfs_agent_delta = 0
 
+    dfs_room["temp"].plot(ax=ax, label="Real room temperature")
     if "dfs_agent_delta" in locals().keys():
-        dfs_room["temp"].plot(ax=ax, label="Real room temperature")
         (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Agent upper setpoint bound")
+        (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Agent lower setpoint bound")
     else:
-        (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Agent heating setpoint")
+        dfs_agent_mean.plot(ax=ax, label="Agent heating setpoint")
 
     current_ylim = ax.get_ylim()
     dfs_room_ttemp = dfs_room["target_temp"]
