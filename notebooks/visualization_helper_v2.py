@@ -285,12 +285,14 @@ def plot_sees(dfs, ax):
 
 def plot_seeser(dfs, selected_room, ax):
     selroom = dfs["seeser"].loc[ dfs["seeser"].loc[:, "room"] == selected_room ]
-    selroom.loc[:, "temp"].plot(ax=ax[0], label=f"Temp, R. {selected_room}")
-    selroom.loc[:, "humidity"].plot(ax=ax[1], label=f"Humidity, R. {selected_room}")
-    selroom.loc[:, "occupancy"].plot(ax=ax[2], label=f"Occupancy, R. {selected_room}")
-    selroom.loc[:, "co2"].plot(ax=ax[3], label=f"CO2, R. {selected_room}")
-    for i in range(4):
-        ax[i].legend()
+    selroom.loc[:, "temp"].plot(ax=ax[0], label=f"{selected_room}")
+    selroom.loc[:, "humidity"].plot(ax=ax[1], label=f"{selected_room}")
+    selroom.loc[:, "occupancy"].plot(ax=ax[2], label=f"{selected_room}")
+    selroom.loc[:, "co2"].plot(ax=ax[3], label=f"{selected_room}")
+    ax[0].set_ylabel("Temperature in C")
+    ax[1].set_ylabel("Humidity in %")
+    ax[2].set_ylabel("Occupancy")
+    ax[3].set_ylabel("CO2 Concentration in ppm")
 
 def plot_seeser_all_rooms(dfs, ax):
     for room in dfs["seeser"].loc[:, "room"].unique():
@@ -440,6 +442,8 @@ def complete_plot_room_status(alldfs, fig_width):
         axes = axes[:, np.newaxis]
     for idx, dfs in enumerate(alldfs):
         plot_seeser_all_rooms(dfs, axes[:, idx])
+    handles, labels = axes[0, 0].get_legend_handles_labels()
+    pl.legend(handles, labels, loc='lower center', ncol=3)
     # for individual rooms use plot_seeser(subdfs, room_id, ax)
     return pl, axes
 
