@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #
-# Baseline 003
+# Baseline 004
 #
 # Fairbanks
 # January
@@ -9,7 +9,7 @@
 
 cd $(dirname $0)
 
-checkpoint_dir=$(realpath "../checkpoints/b003")
+checkpoint_dir=$(realpath "../checkpoints/b004")
 
 if [ -d $checkpoint_dir ]; then
 	rm -r $checkpoint_dir
@@ -27,8 +27,8 @@ python ../code/TrainingController.py \
 	--epw_file ../../COBS/cobs/data/weathers/8.epw \
 	--episode_start_month 1 \
 	--rulebased_setpoint_unoccu_mean 23.0 \
-	--rulebased_setpoint_unoccu_delta 8.0 \
-	--rulebased_setpoint_occu_mean 23.0 \
+	--rulebased_setpoint_unoccu_delta 1.0 \
+	--rulebased_setpoint_occu_mean 24.0 \
 	--rulebased_setpoint_occu_delta 1.0 
 
 
