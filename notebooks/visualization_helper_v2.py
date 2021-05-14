@@ -99,21 +99,18 @@ def select_week_and_episode_with_end_for_dfs_list(alldfs, selected_episodes, sel
         subdfs.append( subdfs1 )
     return subdfs
 
-def get_runtime_overview_df(dfs1, dfs2, colname1="", colname2=""):
+def get_runtime_overview_df(alldfs, dirnames):
     datadict = {}
-    datadict["Number of training episodes"] = [dfs1['eels'].loc[:, "time_cons"].count(), dfs2['eels'].loc[:, "time_cons"].count()]
-    datadict["Runtime in s"] = [dfs1['eels'].loc[:, "time_cons"].sum(), dfs2['eels'].loc[:, "time_cons"].sum()]
-    datadict["Runtime in h"] = [dfs1['eels'].loc[:, "time_cons"].sum()/3600, dfs2['eels'].loc[:, "time_cons"].sum()/3600]
-    datadict["Mean episode runtime in s"] = [dfs1['eels'].loc[:, "time_cons"].mean(), dfs2['eels'].loc[:, "time_cons"].mean()]
+    datadict["Number of training episodes"] = [dfs['eels'].loc[:, "time_cons"].count() for dfs in alldfs]
+    datadict["Runtime in s"] = [dfs['eels'].loc[:, "time_cons"].sum() for dfs in alldfs]
+    datadict["Runtime in h"] = [dfs['eels'].loc[:, "time_cons"].sum()/3600 for dfs in alldfs]
+    datadict["Mean episode runtime in s"] = [dfs['eels'].loc[:, "time_cons"].mean() for dfs in alldfs]
 
-    datadict["Mean episode runtime during eval. episode in s"] = [dfs1['eels'].loc[dfs1['eels'].loc[:, "eval_epoch"] == "True", "time_cons"].mean(),
-                                                                 dfs2['eels'].loc[dfs2['eels'].loc[:, "eval_epoch"]  == "True", "time_cons"].mean()]
-    datadict["Mean episode runtime after eval. episode in s"] = [dfs1['eels'].loc[dfs1['eels'].loc[:, "eval_epoch"].shift(1) == "True", "time_cons"].mean(),
-                                                                 dfs2['eels'].loc[dfs2['eels'].loc[:, "eval_epoch"].shift(1) == "True", "time_cons"].mean()]
-    datadict["Mean episode runtime in no eval. episode in s"] = [dfs1['eels'].loc[dfs1['eels'].loc[:, "eval_epoch"]  == "False", "time_cons"].mean(),
-                                                                 dfs2['eels'].loc[dfs2['eels'].loc[:, "eval_epoch"]  == "False", "time_cons"].mean()]
+    datadict["Mean episode runtime during eval. episode in s"] = [dfs['eels'].loc[dfs['eels'].loc[:, "eval_epoch"] == "True", "time_cons"].mean() for dfs in alldfs]
+    datadict["Mean episode runtime after eval. episode in s"] = [dfs['eels'].loc[dfs['eels'].loc[:, "eval_epoch"].shift(1) == "True", "time_cons"].mean() for dfs in alldfs]
+    datadict["Mean episode runtime in no eval. episode in s"] = [dfs['eels'].loc[dfs['eels'].loc[:, "eval_epoch"]  == "False", "time_cons"].mean() for dfs in alldfs]
 
-    return pd.DataFrame.from_dict(datadict, orient='index', columns=[colname1, colname2])
+    return pd.DataFrame.from_dict(datadict, orient='index', columns=[dname.split("/")[2] for dname in dirnames])
 
 def compute_last_available_eval_episode(alldfs):
     last_available_eval_episodes = []
