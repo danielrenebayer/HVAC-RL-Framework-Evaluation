@@ -27,8 +27,9 @@ def convert_sqlite_to_df(path_to_db):
     return dfs
 
 def load_and_convert_q_values(dirnames):
-    q_values = []
-    for dirname in dirnames:
+    q_values = {}
+    for idx, dirname in enumerate(dirnames):
+        plot_number = str(idx) + ": " + dirname.split("/")[2]
         fpath = os.path.join(dirname, "q_values.pickle")
         if os.path.exists(fpath):
             # load pickle file
@@ -43,10 +44,10 @@ def load_and_convert_q_values(dirnames):
             conv_q_vals = []
             for idx in range(n_agents):
                 conv_q_vals.append(np.array(q_vals[idx]))
-            q_values.append(conv_q_vals)
+            q_values[plot_number] = conv_q_vals
         else:
             print(f"No Q-value list found for {dirname}.")
-            q_values.append([])
+            q_values[plot_number] = []
     return q_values
 
 def DoW_ItoS(day_of_week_int):
@@ -514,13 +515,18 @@ def plot_stpch_and_econs_distrib(subdfs, fig_width):
 
 
 def plot_q_values(q_values, fig_width):
-    n_scenarios = len(q_values)
-    n_rows = sum([len(q_agent_vals) for q_agent_vals in q_values])
+    n_scenarios = len(q_values.keys())
+    n_rows = sum([len(q_agent_vals) for q_agent_vals in q_values.values()])
     p, axes = plt.subplots(nrows=n_rows, ncols=1, figsize=(fig_width,2*n_rows), sharex=True)
     plot_idx = 0
-    for scenario in range(n_scenarios):
+    for scenario in q_values.keys():
         for agent_id in range( len(q_values[scenario]) ):
-            im = axes[plot_idx].imshow( q_values[scenario][agent_id][:,0,:].T, aspect="auto" )
+            plotdata = []
+            if len(q_values[scenario][agent_id].shape) == 2:
+                plotdata = q_values[scenario][agent_id].T
+            else:
+                plotdata = q_values[scenario][agent_id][:,0,:].T
+            im = axes[plot_idx].imshow(plotdata, aspect="auto" )
             axes[plot_idx].set_ylabel(f"Scenario {scenario}\nAgent {agent_id}")
             cbar = p.colorbar(im, extend='both', shrink=0.95, ax=axes[plot_idx])
             plot_idx += 1
