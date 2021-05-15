@@ -15,6 +15,7 @@ mkdir -p $checkpoint_dir
 
 python ../code/TrainingController.py \
 	--algorithm "baseline_rule-based" \
+	--ts_until_regulation 0 \
 	--lambda_rwd_energy 0.001 \
 	--lambda_rwd_mstpc 1.0 \
 	--checkpoint_dir $checkpoint_dir \

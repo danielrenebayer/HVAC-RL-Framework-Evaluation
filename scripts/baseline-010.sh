@@ -1,31 +1,25 @@
 #!/bin/bash
 
 #
-# Baseline 001
+# Baseline 010
 #
-# Fairbanks
-# January
+# Chicago O'Hare
+# July
 #
 
 cd $(dirname $0)
 
-checkpoint_dir=$(realpath "../checkpoints/b001")
-
-if [ -d $checkpoint_dir ]; then
-	rm -r $checkpoint_dir
-fi
+checkpoint_dir=$(realpath "../checkpoints/b010")
 
 mkdir -p $checkpoint_dir
 
 python ../code/TrainingController.py \
 	--algorithm "baseline_rule-based" \
-	--ts_per_hour 1 \
 	--ts_until_regulation 0 \
-	--lambda_rwd_energy 0.00001 \
-	--lambda_rwd_mstpc  0.2 \
+	--lambda_rwd_energy 0.001 \
+	--lambda_rwd_mstpc 1.0 \
 	--checkpoint_dir $checkpoint_dir \
 	--idf_file $(realpath 5ZoneAirCooled_HigherWinterSetpoint.idf) \
-	--epw_file ../../COBS/cobs/data/weathers/8.epw \
 	--episode_start_month 1
 
 
