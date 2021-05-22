@@ -5,10 +5,12 @@ cd $(dirname $0)
 
 datestr=$(date +"%Y%m%d-%H%M")
 checkpoint_dir=$(realpath "../checkpoints/s151")"/${datestr}"
-num_iters=150
+num_iters=170
 num_episodes_per_iter=150
 
 let epsilon_final=$num_iters*$num_episodes_per_iter
+let num_iters_eight=$num_iters/8
+let num_iters_quart=$num_iters/4
 let num_iters_half=$num_iters/2
 mkdir -p $checkpoint_dir
 
@@ -19,7 +21,11 @@ for i in $(seq $num_iters); do
     arguments+=( "--shared_network_per_agent_class" )
     arguments+=( "--ts_per_hour" 1 )
     arguments+=( "--ts_until_regulation" 0 )
-    if (( $i < $num_iters_half )); then
+    if   (( $i < $num_iters_eight )); then
+        arguments+=( "--lr" 0.085 )
+    elif (( $i < $num_iters_quart )); then
+        arguments+=( "--lr" 0.05 )
+    elif (( $i < $num_iters_half )); then
         arguments+=( "--lr" 0.025 )
     else
         arguments+=( "--lr" 0.01 )
@@ -43,7 +49,7 @@ for i in $(seq $num_iters); do
     arguments+=( "--epsilon_final_step" $epsilon_final )
     arguments+=( "--agent_network" "2HiddenLayer,Trapezium,SiLU" )
     arguments+=( "--agent_init_fn" "xavier_normal" )
-    arguments+=( "--agent_init_gain" 0.7 )
+    arguments+=( "--agent_init_gain" 0.56 )
     arguments+=( "--agent_w_l2" 0.000001 )
     arguments+=( "--checkpoint_dir" $checkpoint_dir )
     arguments+=( "--idf_file" $(realpath 5ZoneAirCooled_HigherWinterSetpoint.idf) )
