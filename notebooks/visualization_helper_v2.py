@@ -188,6 +188,7 @@ def get_arguments_overview(dirnames, only_with_different_vals = True):
     #fulldfs_cols = list(fulldfs.columns)
     #fulldfs_cols.remove('default')
     #return fulldfs.loc[:, fulldfs_cols]
+    # remove samle values if selected
     if only_with_different_vals:
         indexes_with_different_vals = []
         for idx, data in fulldfs.iterrows():
@@ -207,15 +208,15 @@ def plot_eels_reward(dfs, ax):
 
     dfs['eels'].loc[:,   "mean_reward"].plot(ax=ax[0], label="all episodes")
     ax[0].set_ylabel("Mean Reward")
-    dfs['eels'].loc[:,   "sum_energy_Wh"].plot(ax=ax[1], label="all episodes")
-    ax[1].set_ylabel("Energy consumption in Wh\n(for a complete episode)")
+    (dfs['eels'].loc[:,   "sum_energy_Wh"]/1000).plot(ax=ax[1], label="all episodes")
+    ax[1].set_ylabel("Energy consumption in kWh\n(for a complete episode)")
     dfs['eels'].loc[:,    "mean_manual_stp_ch_n"].plot(ax=ax[2], label="all episodes")
     ax[2].set_ylabel("Magnitude of\nmanual setpoint changes")
     dfs['eels'].loc[evaluation_episodes, "mean_reward"].plot(ax=ax[0], label="evaluation episodes")
-    dfs['eels'].loc[evaluation_episodes, "sum_energy_Wh"].plot(ax=ax[1], label="evaluation episodes")
+    (dfs['eels'].loc[evaluation_episodes, "sum_energy_Wh"]/1000).plot(ax=ax[1], label="evaluation episodes")
     dfs['eels'].loc[ evaluation_episodes, "mean_manual_stp_ch_n"].plot(ax=ax[2], label="evaluation episodes")
     dfs['eels'].loc[evaluation_episodes, "mean_reward"].rolling(window=30, min_periods=0).mean().plot(ax=ax[0], label="rolling mean for evaluation episodes", color="tab:red")
-    dfs['eels'].loc[evaluation_episodes, "sum_energy_Wh"].rolling(window=30, min_periods=0).mean().plot(ax=ax[1], label="rolling mean for evaluation episodes", color="tab:red")
+    (dfs['eels'].loc[evaluation_episodes, "sum_energy_Wh"]/1000).rolling(window=30, min_periods=0).mean().plot(ax=ax[1], label="rolling mean for evaluation episodes", color="tab:red")
     dfs['eels'].loc[evaluation_episodes, "mean_manual_stp_ch_n"].rolling(window=30, min_periods=0).mean().plot(ax=ax[2], label="rolling mean for evaluation episodes", color="tab:red")
     for i in range(3):
         #ax[i].legend()
@@ -263,8 +264,8 @@ def plot_sees_only_mstpc(dfs, ax):
 def plot_sees_reward(dfs, ax):
     l1 = dfs['sees'].loc[:,   "reward"].plot(ax=ax[0], label="Reward", color="tab:purple")
     ax[0].set_ylabel("Reward")
-    l2 = dfs['sees'].loc[:,   "energy_Wh"].plot(ax=ax[1], label="Energy consumption in Wh", color="tab:olive")
-    ax[1].set_ylabel("Wh")
+    l2 = (dfs['sees'].loc[:,   "energy_Wh"]/1000).plot(ax=ax[1], label="Energy consumption in kWh", color="tab:olive")
+    ax[1].set_ylabel("kWh")
     l3 = dfs['sees'].loc[:,    "manual_stp_ch_n"].plot(ax=ax[2], label="Magnitude of manual setpoint changes", color="tab:cyan")
     for i in range(3):
         ax[i].set_xlabel("Epoche / Timestep")
@@ -459,14 +460,20 @@ def complete_plot_all_agent_outputs(alldfs, fig_width, subdfs_agents):
     return pl, axes
 
 
-def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents):
+def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents, with_outdoor_temp=False):
     if not type(subdfs) is list:
         subdfs       = [subdfs]
         subdfs_rooms = [subdfs_rooms]
         subdfs_agents= [subdfs_agents]
 
     max_n_agents = max(2, max([len(sdfs_agents) for sdfs_agents in subdfs_agents]))
-    p, axes = plt.subplots(nrows=max_n_agents+3, ncols=len(subdfs), figsize=(fig_width,3*max_n_agents), sharex=True)
+    row_addition = 0
+    if with_outdoor_temp:
+        row_addition = 1
+    p, axes = plt.subplots(nrows=max_n_agents+3+row_addition,
+                           ncols=len(subdfs),
+                           figsize=(fig_width,3*max_n_agents+2*row_addition),
+                           sharex=True)
     legend_handles = []
     legend_labels  = []
 
@@ -476,6 +483,9 @@ def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents)
     # plot rewards
     for idx, dfs in enumerate(subdfs):
         plot_sees_reward(subdfs[idx], axes[:, idx])
+        if with_outdoor_temp:
+            dfs["sees"]["outdoor_temp"].plot(ax=axes[-1, idx], label="outdoor_temp")
+            axes[-1, idx].legend()
 
     # plot for every room
     for idx, sdfs in enumerate(subdfs):
@@ -517,7 +527,7 @@ def plot_stpch_and_econs_distrib(subdfs, fig_width):
 def plot_q_values(q_values, fig_width):
     n_scenarios = len(q_values.keys())
     n_rows = sum([len(q_agent_vals) for q_agent_vals in q_values.values()])
-    p, axes = plt.subplots(nrows=n_rows, ncols=1, figsize=(fig_width,2*n_rows), sharex=True)
+    p, axes = plt.subplots(nrows=n_rows, ncols=1, figsize=(fig_width,3*n_rows), sharex=True)
     plot_idx = 0
     for scenario in q_values.keys():
         for agent_id in range( len(q_values[scenario]) ):
