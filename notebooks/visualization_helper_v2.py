@@ -141,6 +141,11 @@ def get_available_rooms_and_agents(alldfs):
     for idx, sdfs in enumerate(alldfs):
         sdfs_rooms  = sdfs["seeser"].loc[:, "room"].unique()
         sdfs_agents = sdfs["seesea"].loc[:, "agent_nr"].unique()
+        if "controlled_device" in sdfs["seesea"].columns:
+            sdfs_agents = {sdfs["seesea"].loc[ sdfs["seesea"].loc[:, "agent_nr"] == agent_id, "controlled_device" ][0]: agent_id for agent_id in sdfs_agents}
+        else:
+            sdfs_agents = {f"SPACE{agent_id+1}-1": agent_id for agent_id in sdfs_agents}
+            print(f"No agent - controlled device pairing found for index {idx}")
         subdfs_rooms.append(sdfs_rooms)
         subdfs_agents.append(sdfs_agents)
         print(f"Available Rooms     in (sub-)dfs{idx}: {sdfs_rooms}")
@@ -448,7 +453,7 @@ def complete_plot_room_status(alldfs, fig_width):
 
 
 def complete_plot_all_agent_outputs(alldfs, fig_width, subdfs_agents):
-    max_n_agents = max(2, max([len(sdfs_agents) for sdfs_agents in subdfs_agents]))
+    max_n_agents = max(2, max([len(sdfs_agents.values()) for sdfs_agents in subdfs_agents]))
     nrows = max_n_agents * max([sdfs['seesea'].iloc[0]["agent_actions"].count(":") for sdfs in alldfs])
     pl, axes = plt.subplots(nrows=nrows, ncols=len(alldfs), figsize=(fig_width,nrows), sharex=True)
     if len(axes.shape) == 1:
@@ -466,7 +471,7 @@ def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents,
         subdfs_rooms = [subdfs_rooms]
         subdfs_agents= [subdfs_agents]
 
-    max_n_agents = max(2, max([len(sdfs_agents) for sdfs_agents in subdfs_agents]))
+    max_n_agents = max(2, max([len(sdfs_agents.values()) for sdfs_agents in subdfs_agents]))
     row_addition = 0
     if with_outdoor_temp:
         row_addition = 1
@@ -489,7 +494,8 @@ def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents,
 
     # plot for every room
     for idx, sdfs in enumerate(subdfs):
-        for idx2, room, agentid in zip(range(len(subdfs_rooms[idx])), subdfs_rooms[idx], subdfs_agents[idx]):
+        for idx2, room in zip(range(len(subdfs_rooms[idx])), subdfs_rooms[idx]):
+            agentid = subdfs_agents[idx][room]
             idx2offset = idx2+3
             plot_room_temp_agent_setpoint(sdfs, room, agentid, axes[idx2offset, idx], True)
             handles, labels = axes[idx2offset, idx].get_legend_handles_labels()
