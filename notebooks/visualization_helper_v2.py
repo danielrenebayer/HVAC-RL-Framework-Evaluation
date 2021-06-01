@@ -525,8 +525,15 @@ def plot_stpch_and_econs_distrib(subdfs, fig_width):
 
 
 def plot_q_values(q_values, fig_width):
+    n_rows = 0
+    for scenario in q_values.keys():
+        for agent_id in range( len(q_values[scenario]) ):
+            if q_values[scenario][agent_id].shape[0] == 0:
+                print(f"No q-values available for scenario {scenario}, agent {agent_id}")
+                continue
+            n_rows += 1
     n_scenarios = len(q_values.keys())
-    n_rows = sum([len(q_agent_vals) for q_agent_vals in q_values.values()])
+    #n_rows = sum([len(q_agent_vals) for q_agent_vals in q_values.values()])
     p, axes = plt.subplots(nrows=n_rows, ncols=1, figsize=(fig_width,3*n_rows), sharex=True)
     plot_idx = 0
     for scenario in q_values.keys():
@@ -534,6 +541,8 @@ def plot_q_values(q_values, fig_width):
             plotdata = []
             if len(q_values[scenario][agent_id].shape) == 2:
                 plotdata = q_values[scenario][agent_id].T
+            elif q_values[scenario][agent_id].shape[0] == 0:
+                continue
             else:
                 plotdata = q_values[scenario][agent_id][:,0,:].T
             im = axes[plot_idx].imshow(plotdata, aspect="auto" )
