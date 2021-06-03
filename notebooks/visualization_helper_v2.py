@@ -344,6 +344,8 @@ def plot_room_temp_agent_setpoint(dfs, room, agentid, ax, fill_between = False):
     elif "Zone Heating/Cooling-Mean Setpoint" in dfs_agnet.columns:
         dfs_agent_mean  = dfs_agnet.loc[:, "Zone Heating/Cooling-Mean Setpoint"]
         dfs_agent_delta = dfs_agnet.loc[:, "Zone Heating/Cooling-Delta Setpoint"]
+    elif f"{room} Zone Heating Setpoint" in dfs_agnet.columns:
+        dfs_agent_mean  = dfs_agnet.loc[:, f"{room} Zone Heating Setpoint"]
     else:
         dfs_agent_mean  = dfs_agnet.loc[:, "Zone Heating Setpoint"]
         #dfs_agent_delta = 0
@@ -495,7 +497,10 @@ def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents,
     # plot for every room
     for idx, sdfs in enumerate(subdfs):
         for idx2, room in zip(range(len(subdfs_rooms[idx])), subdfs_rooms[idx]):
-            agentid = subdfs_agents[idx][room]
+            if room in subdfs_agents[idx].keys():
+                agentid = subdfs_agents[idx][room]
+            else:
+                agentid = 0
             idx2offset = idx2+3
             plot_room_temp_agent_setpoint(sdfs, room, agentid, axes[idx2offset, idx], True)
             handles, labels = axes[idx2offset, idx].get_legend_handles_labels()
@@ -541,6 +546,8 @@ def plot_q_values(q_values, fig_width):
     n_scenarios = len(q_values.keys())
     #n_rows = sum([len(q_agent_vals) for q_agent_vals in q_values.values()])
     p, axes = plt.subplots(nrows=n_rows, ncols=1, figsize=(fig_width,3*n_rows), sharex=True)
+    if n_rows == 1:
+        axes = [axes]
     plot_idx = 0
     for scenario in q_values.keys():
         for agent_id in range( len(q_values[scenario]) ):
