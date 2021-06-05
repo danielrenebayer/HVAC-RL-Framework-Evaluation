@@ -350,18 +350,20 @@ def plot_room_temp_agent_setpoint(dfs, room, agentid, ax, fill_between = False):
         dfs_agent_mean  = dfs_agnet.loc[:, "Zone Heating Setpoint"]
         #dfs_agent_delta = 0
 
-    dfs_room["temp"].plot(ax=ax, label="Real room temperature")
     if "dfs_agent_delta" in locals().keys():
-        (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Agent upper setpoint bound")
-        (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Agent lower setpoint bound")
+        (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Agent upper setpoint bound", color="tab:blue") #linestyle='--'
+        (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Agent lower setpoint bound", color="tab:orange")
     else:
-        dfs_agent_mean.plot(ax=ax, label="Agent heating setpoint")
+        dfs_agent_mean.plot(ax=ax, label="Agent heating setpoint", color="tab:orange")
 
     current_ylim = ax.get_ylim()
     dfs_room_ttemp = dfs_room["target_temp"]
     dfs_room_ttemp.plot(ax=ax, label="Target room temperature", color="tab:red")
     if fill_between:
         ax.fill_between(dfs_room_ttemp.index, dfs_room_ttemp-1, dfs_room_ttemp+1, alpha=0.5, color="red")
+
+    dfs_room["temp"].plot(ax=ax, label="Real room temperature", color="tab:green")
+
     ax.set_ylim(current_ylim)
     ax.set_ylabel(room)
 
@@ -535,7 +537,7 @@ def plot_stpch_and_econs_distrib(subdfs, fig_width):
         axes[2,idx].set_xlabel("Energy consumption\nfor a single timestep")
 
 
-def plot_q_values(q_values, fig_width):
+def plot_q_values(q_values, fig_width, y_label = None, x_label = None):
     n_rows = 0
     for scenario in q_values.keys():
         for agent_id in range( len(q_values[scenario]) ):
@@ -559,8 +561,14 @@ def plot_q_values(q_values, fig_width):
             else:
                 plotdata = q_values[scenario][agent_id][:,0,:].T
             im = axes[plot_idx].imshow(plotdata, aspect="auto" )
-            axes[plot_idx].set_ylabel(f"Scenario {scenario}\nAgent {agent_id}")
+            if y_label is None:
+                axes[plot_idx].set_ylabel(f"Scenario {scenario}\nAgent {agent_id}")
+            else:
+                axes[plot_idx].set_ylabel(y_label)
+            if not x_label is None:
+                axes[plot_idx].set_xlabel(x_label)
             cbar = p.colorbar(im, extend='both', shrink=0.95, ax=axes[plot_idx])
             plot_idx += 1
+    return p, axes
 
 
