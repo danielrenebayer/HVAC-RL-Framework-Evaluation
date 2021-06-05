@@ -4,6 +4,7 @@ scripts/result/
 scripts/input.idf
 notebooks/input.idf
 notebooks/result/
+notebooks/saved_plots/
 .*.swp
 *.pyc
 __pycache__/
