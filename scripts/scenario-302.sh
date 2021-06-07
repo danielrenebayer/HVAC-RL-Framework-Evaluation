@@ -43,6 +43,7 @@ for i in $(seq $num_iters); do
     arguments+=( "--lambda_rwd_energy" 0.017 )
     arguments+=( "--lambda_rwd_mstpc"  0.16 )
     arguments+=( "--clip_econs_at" 150.0 )
+    arguments+=( "--energy_cons_in_kWh" )
     arguments+=( "--network_storage_frequency" $num_episodes_per_iter )
     arguments+=( "--target_network_update_freq" 2 )
     arguments+=( "--epsilon" 0.05 )
