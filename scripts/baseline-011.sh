@@ -18,6 +18,7 @@ python ../code/TrainingController.py \
 	--ts_until_regulation 0 \
 	--lambda_rwd_energy 0.001 \
 	--lambda_rwd_mstpc 1.0 \
+	--stp_reward_step_offset 1.0 \
 	--idf_file $(realpath 5ZoneAirCooled_HigherWinterSetpoint.idf) \
 	--checkpoint_dir $checkpoint_dir
 
