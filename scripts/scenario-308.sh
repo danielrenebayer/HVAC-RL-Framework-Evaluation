@@ -4,55 +4,60 @@ set -o pipefail
 cd $(dirname $0)
 
 datestr=$(date +"%Y%m%d-%H%M")
-checkpoint_dir=$(realpath "../checkpoints/s162")"/${datestr}"
-num_iters=135
+checkpoint_dir=$(realpath "../checkpoints/s308")"/${datestr}"
+num_iters=100
+num_iters_post=20 #after epsilon set to 0.5
 num_episodes_per_iter=160
 
+let num_total_iters=$num_iters*$num_iters_post
 let epsilon_final=$num_iters*$num_episodes_per_iter
 let num_iters_half=$num_iters/2
 let num_iters_quart=$num_iters/4
 let num_iters_threequart=3*$num_iters/4
+let num_iters_post_1=$num_iters
+let num_iters_post_2=$num_iters+$num_iters_post/2
 mkdir -p $checkpoint_dir
 
-for i in $(seq $num_iters); do
+for i in $(seq $num_total_iters); do
     arguments=()
     arguments+=( "--algorithm" "ddqn" )
     arguments+=( "--model" "Building_5ZoneAirCooled_SingleSetpoint" )
     #if (( $i < $num_iters_threequart )); then
     #    arguments+=( "--shared_network_per_agent_class" )
     #fi
-    arguments+=( "--single_setpoint_agent_count" "one_but3not5" )
+    arguments+=( "--single_setpoint_agent_count" "one_but2not5" )
     arguments+=( "--fewer_q_values" )
     arguments+=( "--ts_per_hour" 1 )
     arguments+=( "--ts_until_regulation" 0 )
     if   (( $i < $num_iters_quart )); then
-        arguments+=( "--lr" 0.04 )
-    	arguments+=( "--batch_size" 128 )
+        arguments+=( "--lr" 0.1 )
     elif (( $i < $num_iters_half )); then
-        arguments+=( "--lr" 0.02 )
-    	arguments+=( "--batch_size" 128 )
+        arguments+=( "--lr" 0.065 )
     elif (( $i < $num_iters_threequart )); then
+        arguments+=( "--lr" 0.04 )
+    elif (( $i < $num_iters_post_1 )); then
         arguments+=( "--lr" 0.02 )
-    	arguments+=( "--batch_size" 256 )
-    else
+    elif (( $i < $num_iters_post_2 )); then
         arguments+=( "--lr" 0.01 )
-    	arguments+=( "--batch_size" 256 )
+    else
+        arguments+=( "--lr" 0.005 )
     fi
     arguments+=( "--discount_factor" 0.9 )
     arguments+=( "--next_occ_horizont" 2 )
+    arguments+=( "--batch_size" 256 )
     arguments+=( "--episodes_count" $num_episodes_per_iter )
-    arguments+=( "--stp_reward_function" "linear" )
     arguments+=( "--stp_reward_step_offset" 1.0 )
-    arguments+=( "--log_rwd_energy" )
-    arguments+=( "--energy_cons_in_kWh" )
     arguments+=( "--reward_offset" 0.3 )
-    arguments+=( "--lambda_rwd_energy" 0.05 )
-    arguments+=( "--lambda_rwd_mstpc"  0.1 )
+    arguments+=( "--lambda_rwd_energy" 0.017 )
+    arguments+=( "--lambda_rwd_mstpc"  0.08 )
+    arguments+=( "--clip_econs_at" 150.0 )
+    arguments+=( "--energy_cons_in_kWh" )
     arguments+=( "--network_storage_frequency" $num_episodes_per_iter )
-    arguments+=( "--target_network_update_freq" 4 )
+    arguments+=( "--target_network_update_freq" 2 )
     arguments+=( "--epsilon" 0.05 )
     arguments+=( "--epsilon_final_step" $epsilon_final )
-    arguments+=( "--agent_network" "2HiddenLayer,Trapezium,SiLU" )
+    arguments+=( "--epsilon_decay_mode" "linear" )
+    arguments+=( "--agent_network" "2HiddenLayer,Trapezium" )
     arguments+=( "--agent_init_fn" "xavier_normal" )
     arguments+=( "--agent_init_gain" 0.7 )
     arguments+=( "--agent_w_l2" 0.000001 )
