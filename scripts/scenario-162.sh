@@ -5,7 +5,7 @@ cd $(dirname $0)
 
 datestr=$(date +"%Y%m%d-%H%M")
 checkpoint_dir=$(realpath "../checkpoints/s162")"/${datestr}"
-num_iters=135
+num_iters=110
 num_episodes_per_iter=160
 
 let epsilon_final=$num_iters*$num_episodes_per_iter
@@ -17,6 +17,7 @@ mkdir -p $checkpoint_dir
 for i in $(seq $num_iters); do
     arguments=()
     arguments+=( "--algorithm" "ddqn" )
+    arguments+=( "--ddqn_new" )
     arguments+=( "--model" "Building_5ZoneAirCooled_SingleSetpoint" )
     #if (( $i < $num_iters_threequart )); then
     #    arguments+=( "--shared_network_per_agent_class" )
@@ -27,29 +28,30 @@ for i in $(seq $num_iters); do
     arguments+=( "--ts_until_regulation" 0 )
     if   (( $i < $num_iters_quart )); then
         arguments+=( "--lr" 0.04 )
-    	arguments+=( "--batch_size" 128 )
+    	#arguments+=( "--batch_size" 128 )
     elif (( $i < $num_iters_half )); then
         arguments+=( "--lr" 0.02 )
-    	arguments+=( "--batch_size" 128 )
+    	#arguments+=( "--batch_size" 128 )
     elif (( $i < $num_iters_threequart )); then
         arguments+=( "--lr" 0.02 )
-    	arguments+=( "--batch_size" 256 )
+    	#arguments+=( "--batch_size" 256 )
     else
         arguments+=( "--lr" 0.01 )
-    	arguments+=( "--batch_size" 256 )
+    	#arguments+=( "--batch_size" 256 )
     fi
     arguments+=( "--discount_factor" 0.9 )
     arguments+=( "--next_occ_horizont" 2 )
+    arguments+=( "--batch_size" 256 )
     arguments+=( "--episodes_count" $num_episodes_per_iter )
     arguments+=( "--stp_reward_function" "linear" )
     arguments+=( "--stp_reward_step_offset" 1.0 )
     arguments+=( "--log_rwd_energy" )
     arguments+=( "--energy_cons_in_kWh" )
     arguments+=( "--reward_offset" 0.3 )
-    arguments+=( "--lambda_rwd_energy" 0.05 )
-    arguments+=( "--lambda_rwd_mstpc"  0.1 )
+    arguments+=( "--lambda_rwd_energy" 0.004 )
+    arguments+=( "--lambda_rwd_mstpc"  0.0365 )
     arguments+=( "--network_storage_frequency" $num_episodes_per_iter )
-    arguments+=( "--target_network_update_freq" 4 )
+    arguments+=( "--target_network_update_freq" 2)
     arguments+=( "--epsilon" 0.05 )
     arguments+=( "--epsilon_final_step" $epsilon_final )
     arguments+=( "--agent_network" "2HiddenLayer,Trapezium,SiLU" )

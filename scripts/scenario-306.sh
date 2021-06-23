@@ -22,6 +22,7 @@ mkdir -p $checkpoint_dir
 for i in $(seq $num_iters); do
     arguments=()
     arguments+=( "--algorithm" "ddqn" )
+    arguments+=( "--ddqn_new" )
     if (( $i < $num_iters_D )); then
         # this is the single agent in broadcasting mode
         arguments+=( "--model" "Building_5ZoneAirCooled_SingleSetpoint_SingleAgent" )
@@ -54,11 +55,11 @@ for i in $(seq $num_iters); do
     arguments+=( "--next_occ_horizont" 2 )
     arguments+=( "--batch_size" 256 )
     arguments+=( "--episodes_count" $num_episodes_per_iter )
-    arguments+=( "--stp_reward_step_offset" 1.0 )
+    arguments+=( "--stp_reward_step_offset" 0.0 )
     arguments+=( "--reward_offset" 0.3 )
-    arguments+=( "--lambda_rwd_energy" 0.017 )
-    arguments+=( "--lambda_rwd_mstpc"  0.12 )
-    arguments+=( "--clip_econs_at" 150.0 )
+    arguments+=( "--lambda_rwd_energy" 0.004 )
+    arguments+=( "--lambda_rwd_mstpc"  0.0365 )
+    #arguments+=( "--clip_econs_at" 150.0 )
     arguments+=( "--energy_cons_in_kWh" )
     arguments+=( "--network_storage_frequency" $num_episodes_per_iter )
     arguments+=( "--target_network_update_freq" 2 )

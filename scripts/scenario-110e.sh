@@ -12,7 +12,7 @@ let num_iters_A=$num_iters/8
 let num_iters_B=$num_iters/4
 let num_iters_C=$num_iters/2
 let num_iters_D=3*$num_iters/4
-let epsilon_final_1=$num_iters*$num_episodes_per_iter
+let epsilon_final_1=$num_iters*$num_episodes_per_iter/2
 
 mkdir -p $checkpoint_dir
 

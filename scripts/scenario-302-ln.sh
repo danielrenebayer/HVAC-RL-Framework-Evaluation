@@ -17,6 +17,7 @@ mkdir -p $checkpoint_dir
 for i in $(seq $num_iters); do
     arguments=()
     arguments+=( "--algorithm" "ddqn" )
+    arguments+=( "--ddqn_new" )
     arguments+=( "--model" "Building_5ZoneAirCooled_SingleSetpoint" )
     #if (( $i < $num_iters_threequart )); then
     #    arguments+=( "--shared_network_per_agent_class" )

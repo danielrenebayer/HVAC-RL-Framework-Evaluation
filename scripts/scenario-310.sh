@@ -5,8 +5,8 @@ cd $(dirname $0)
 
 datestr=$(date +"%Y%m%d-%H%M")
 checkpoint_dir=$(realpath "../checkpoints/s310")"/${datestr}"
-num_iters=125
-num_episodes_per_iter=300
+num_iters=100
+num_episodes_per_iter=250
 
 let epsilon_final_1=$num_iters*$num_episodes_per_iter/2
 let epsilon_final_2=$num_iters*$num_episodes_per_iter
