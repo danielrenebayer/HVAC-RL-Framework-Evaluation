@@ -210,12 +210,14 @@ def plot_lr_epsilon(dfs, ax):
 
 def plot_eels_reward(dfs, ax):
     evaluation_episodes = dfs['sees'].loc[:, "episode"].unique()
+    all_episodes        = dfs['eels'].loc[:, "episode"].unique()
+    non_eval_episodes   = np.setdiff1d(all_episodes, evaluation_episodes)
 
-    dfs['eels'].loc[:,   "mean_reward"].plot(ax=ax[0], label="all episodes")
+    dfs['eels'].loc[non_eval_episodes,   "mean_reward"].plot(ax=ax[0], label="non-evaluation episodes")
     ax[0].set_ylabel("Mean Reward")
-    (dfs['eels'].loc[:,   "sum_energy_Wh"]/1000).plot(ax=ax[1], label="all episodes")
+    (dfs['eels'].loc[non_eval_episodes,   "sum_energy_Wh"]/1000).plot(ax=ax[1], label="non-evaluation episodes")
     ax[1].set_ylabel("Energy consumption in kWh\n(for a complete episode)")
-    dfs['eels'].loc[:,    "mean_manual_stp_ch_n"].plot(ax=ax[2], label="all episodes")
+    dfs['eels'].loc[non_eval_episodes,    "mean_manual_stp_ch_n"].plot(ax=ax[2], label="non-evaluation episodes")
     ax[2].set_ylabel("Magnitude of\nmanual setpoint changes")
     dfs['eels'].loc[evaluation_episodes, "mean_reward"].plot(ax=ax[0], label="evaluation episodes")
     (dfs['eels'].loc[evaluation_episodes, "sum_energy_Wh"]/1000).plot(ax=ax[1], label="evaluation episodes")
