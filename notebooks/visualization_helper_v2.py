@@ -126,7 +126,7 @@ def print_reward_informations(alldfs, selected_episodes):
     for idx, dfs in enumerate(alldfs):
         econs = dfs['eels'].iloc[0]['sum_energy_Wh']/1000
         nstpc = dfs['eels'].iloc[0]['sum_manual_stp_ch_n'] if 'sum_manual_stp_ch_n' in dfs['eels'].columns else "?"
-        print(f"For episode {selected_episodes[idx]:5}: Energy consumption: {econs:10.2f} kWh; Numer of setpoint changes: {nstpc:8}")
+        print(f"For episode {selected_episodes[idx]:5}: Energy consumption: {econs:10.2f} kWh; Sum of setpoint change magnitudes: {nstpc:8}")
     print()
     print("Mean values for episode ...")
     for idx, dfs in enumerate(alldfs):
@@ -134,6 +134,14 @@ def print_reward_informations(alldfs, selected_episodes):
         nstpc = dfs['eels'].iloc[0]['mean_manual_stp_ch_n']
         econs = dfs['eels'].iloc[0]['mean_energy_Wh']
         print(f"... {selected_episodes[idx]:5}: Reward: {mrwd:8.5f} kWh; Setpoint change magnit.: {nstpc:8.5f}; Energy cons.: {econs:8.5f}")
+
+def output_reward_informations(alldfs, selected_episodes):
+    outlist = []
+    for idx, dfs in enumerate(alldfs):
+        econs = dfs['eels'].iloc[0]['sum_energy_Wh']/1000
+        mstpc = dfs['eels'].iloc[0]['sum_manual_stp_ch_n'] if 'sum_manual_stp_ch_n' in dfs['eels'].columns else -1
+        outlist.append( (econs, mstpc) )
+    return outlist
 
 def get_available_rooms_and_agents(alldfs):
     subdfs_rooms  = []
@@ -208,17 +216,22 @@ def plot_lr_epsilon(dfs, ax):
     ax.plot( dfs['eels']["lr"],      label="learning rate" )
     ax.legend()
 
-def plot_eels_reward(dfs, ax):
+def plot_eels_reward(dfs, ax, ylabels=None):
     evaluation_episodes = dfs['sees'].loc[:, "episode"].unique()
     all_episodes        = dfs['eels'].loc[:, "episode"].unique()
     non_eval_episodes   = np.setdiff1d(all_episodes, evaluation_episodes)
 
+    if ylabels is None:
+        ylabels = ["Mean Reward",
+                   "Energy consumption in kWh\n(for a complete episode)",
+                   "Magnitude of\nmanual setpoint changes"]
+
     dfs['eels'].loc[non_eval_episodes,   "mean_reward"].plot(ax=ax[0], label="non-evaluation episodes")
-    ax[0].set_ylabel("Mean Reward")
+    ax[0].set_ylabel(ylabels[0])
     (dfs['eels'].loc[non_eval_episodes,   "sum_energy_Wh"]/1000).plot(ax=ax[1], label="non-evaluation episodes")
-    ax[1].set_ylabel("Energy consumption in kWh\n(for a complete episode)")
+    ax[1].set_ylabel(ylabels[1])
     dfs['eels'].loc[non_eval_episodes,    "mean_manual_stp_ch_n"].plot(ax=ax[2], label="non-evaluation episodes")
-    ax[2].set_ylabel("Magnitude of\nmanual setpoint changes")
+    ax[2].set_ylabel(ylabels[2])
     dfs['eels'].loc[evaluation_episodes, "mean_reward"].plot(ax=ax[0], label="evaluation episodes")
     (dfs['eels'].loc[evaluation_episodes, "sum_energy_Wh"]/1000).plot(ax=ax[1], label="evaluation episodes")
     dfs['eels'].loc[ evaluation_episodes, "mean_manual_stp_ch_n"].plot(ax=ax[2], label="evaluation episodes")
@@ -272,11 +285,12 @@ def plot_sees_reward(dfs, ax):
     l1 = dfs['sees'].loc[:,   "reward"].plot(ax=ax[0], label="Reward", color="tab:purple")
     ax[0].set_ylabel("Reward")
     l2 = (dfs['sees'].loc[:,   "energy_Wh"]/1000).plot(ax=ax[1], label="Energy consumption in kWh", color="tab:olive")
-    ax[1].set_ylabel("kWh")
+    ax[1].set_ylabel("Energy cons.\nin kWh")
     l3 = dfs['sees'].loc[:,    "manual_stp_ch_n"].plot(ax=ax[2], label="Magnitude of manual setpoint changes", color="tab:cyan")
+    ax[2].set_ylabel("Sum of MSTPC")
     for i in range(3):
         ax[i].set_xlabel("Epoche / Timestep")
-        ax[i].legend()
+        #ax[i].legend()
     return l1, l2, l3
 
 def plot_sees(dfs, ax):
@@ -289,20 +303,31 @@ def plot_sees(dfs, ax):
     for i in range(1,5):
         ax[i].legend()
 
-def plot_seeser(dfs, selected_room, ax):
+def plot_seeser(dfs, selected_room, ax, plot_2x2=False):
+  if not plot_2x2:
     selroom = dfs["seeser"].loc[ dfs["seeser"].loc[:, "room"] == selected_room ]
     selroom.loc[:, "temp"].plot(ax=ax[0], label=f"{selected_room}")
     selroom.loc[:, "humidity"].plot(ax=ax[1], label=f"{selected_room}")
     selroom.loc[:, "occupancy"].plot(ax=ax[2], label=f"{selected_room}")
     selroom.loc[:, "co2"].plot(ax=ax[3], label=f"{selected_room}")
-    ax[0].set_ylabel("Temperature in C")
+    ax[0].set_ylabel("Temperature in "+u"\u00b0"+"C")
     ax[1].set_ylabel("Humidity in %")
     ax[2].set_ylabel("Occupancy")
     ax[3].set_ylabel("CO2 Concentration in ppm")
+  else:
+    selroom = dfs["seeser"].loc[ dfs["seeser"].loc[:, "room"] == selected_room ]
+    selroom.loc[:, "temp"].plot(ax=ax[0,0], label=f"{selected_room}")
+    selroom.loc[:, "humidity"].plot(ax=ax[1,0], label=f"{selected_room}")
+    selroom.loc[:, "occupancy"].plot(ax=ax[0,1], label=f"{selected_room}")
+    selroom.loc[:, "co2"].plot(ax=ax[1,1], label=f"{selected_room}")
+    ax[0,0].set_ylabel("Temperature in "+u"\u00b0"+"C")
+    ax[1,0].set_ylabel("Humidity in %")
+    ax[0,1].set_ylabel("Occupancy")
+    ax[1,1].set_ylabel("CO2 Concentration in ppm")
 
-def plot_seeser_all_rooms(dfs, ax):
+def plot_seeser_all_rooms(dfs, ax, plot_2x2=False):
     for room in dfs["seeser"].loc[:, "room"].unique():
-        plot_seeser(dfs, room, ax)
+        plot_seeser(dfs, room, ax, plot_2x2)
 
 def plot_seesea(dfs, ax=None):
     if len(dfs["seesea"].loc[:, "agent_nr"].unique()) == 1:
@@ -332,7 +357,7 @@ def plot_seesea_single_agent(dfs, selected_agent, ax=None):
             sum_of_outputs += 1
     return sum_of_outputs
 
-def plot_room_temp_agent_setpoint(dfs, room, agentid, ax, fill_between = False):
+def plot_room_temp_agent_setpoint(dfs, room, agentid, ax, fill_between = False, plot_room_temp = True, plot_target_temp_after_setpoints = True, heating_setpoint_color="tab:orange"):
     dfs_room  = dfs["seeser"].loc[ dfs["seeser"].loc[:, "room"] == room ]
     dfs_agent_dict = dfs["seesea"].loc[ dfs["seesea"].loc[:, "agent_nr"] == agentid ]
     dfs_agnet = pd.DataFrame([ ast.literal_eval( action )
@@ -352,22 +377,33 @@ def plot_room_temp_agent_setpoint(dfs, room, agentid, ax, fill_between = False):
         dfs_agent_mean  = dfs_agnet.loc[:, "Zone Heating Setpoint"]
         #dfs_agent_delta = 0
 
-    if "dfs_agent_delta" in locals().keys():
-        (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Agent upper setpoint bound", color="tab:blue") #linestyle='--'
-        (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Agent lower setpoint bound", color="tab:orange")
-    else:
-        dfs_agent_mean.plot(ax=ax, label="Agent heating setpoint", color="tab:orange")
+    if plot_target_temp_after_setpoints:
+        if "dfs_agent_delta" in locals().keys():
+            (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Agent upper setpoint bound", color="tab:blue") #linestyle='--'
+            (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Agent lower setpoint bound", color=heating_setpoint_color)
+        else:
+            dfs_agent_mean.plot(ax=ax, label="Agent heating setpoint", color=heating_setpoint_color)
+        current_ylim = ax.get_ylim()
 
-    current_ylim = ax.get_ylim()
     dfs_room_ttemp = dfs_room["target_temp"]
     dfs_room_ttemp.plot(ax=ax, label="Target room temperature", color="tab:red")
     if fill_between:
         ax.fill_between(dfs_room_ttemp.index, dfs_room_ttemp-1, dfs_room_ttemp+1, alpha=0.5, color="red")
 
-    dfs_room["temp"].plot(ax=ax, label="Real room temperature", color="tab:green")
+    if not plot_target_temp_after_setpoints:
+        if "dfs_agent_delta" in locals().keys():
+            (dfs_agent_mean + dfs_agent_delta).plot(ax=ax, label="Agent upper setpoint bound", color="tab:blue") #linestyle='--'
+            (dfs_agent_mean - dfs_agent_delta).plot(ax=ax, label="Agent lower setpoint bound", color=heating_setpoint_color)
+        else:
+            dfs_agent_mean.plot(ax=ax, label="Agent heating setpoint", color=heating_setpoint_color)
+        current_ylim = ax.get_ylim()
+
+    if plot_room_temp:
+        dfs_room["temp"].plot(ax=ax, label="Real room temperature", color="tab:green")
 
     ax.set_ylim(current_ylim)
     ax.set_ylabel(room)
+    ax.set_xlabel("day and time")
 
 
 
@@ -446,14 +482,19 @@ def complete_plot_number_of_stp_ch(alldfs, fig_width):
     return pl, axes
 
 
-def complete_plot_room_status(alldfs, fig_width):
-    pl, axes = plt.subplots(nrows=4, ncols=len(alldfs), figsize=(fig_width,12), sharex=True)
-    if len(axes.shape) == 1:
-        axes = axes[:, np.newaxis]
-    for idx, dfs in enumerate(alldfs):
-        plot_seeser_all_rooms(dfs, axes[:, idx])
-    handles, labels = axes[0, 0].get_legend_handles_labels()
-    pl.legend(handles, labels, loc='lower center', ncol=3)
+def complete_plot_room_status(alldfs, fig_width, plot_x2x2=False):
+    if plot_x2x2:
+        pl, axes = plt.subplots(nrows=2, ncols=2, figsize=(fig_width,6), sharex=True)
+        plot_seeser_all_rooms(alldfs, axes, plot_x2x2)
+        pl.tight_layout()
+    else:
+        pl, axes = plt.subplots(nrows=4, ncols=len(alldfs), figsize=(fig_width,12), sharex=True)
+        if len(axes.shape) == 1:
+            axes = axes[:, np.newaxis]
+        for idx, dfs in enumerate(alldfs):
+            plot_seeser_all_rooms(dfs, axes[:, idx], plot_x2x2)
+        handles, labels = axes[0, 0].get_legend_handles_labels()
+        pl.legend(handles, labels, loc='lower center', ncol=3)
     # for individual rooms use plot_seeser(subdfs, room_id, ax)
     return pl, axes
 
@@ -471,7 +512,7 @@ def complete_plot_all_agent_outputs(alldfs, fig_width, subdfs_agents):
     return pl, axes
 
 
-def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents, with_outdoor_temp=False):
+def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents, with_outdoor_temp=False, legend_location='lower center', framealpha=0.8, fig_height_sf=1.0, fig_height=None, n_rows=None, heating_setpoint_color="tab:orange", cols_legend=2, axes=None):
     if not type(subdfs) is list:
         subdfs       = [subdfs]
         subdfs_rooms = [subdfs_rooms]
@@ -481,10 +522,19 @@ def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents,
     row_addition = 0
     if with_outdoor_temp:
         row_addition = 1
-    p, axes = plt.subplots(nrows=max_n_agents+3+row_addition,
+    if fig_height is None:
+        fig_height = (3*max_n_agents+2*row_addition)*fig_height_sf
+    if n_rows is None:
+        n_rows = max_n_agents+3+row_addition
+    if axes is None:
+        axes_given = False
+        p, axes = plt.subplots(
+                           nrows=n_rows,
                            ncols=len(subdfs),
-                           figsize=(fig_width,3*max_n_agents+2*row_addition),
+                           figsize=(fig_width,fig_height),
                            sharex=True)
+    else:
+        axes_given = True
     legend_handles = []
     legend_labels  = []
 
@@ -506,14 +556,18 @@ def complete_plot_total_overview(subdfs, fig_width, subdfs_rooms, subdfs_agents,
             else:
                 agentid = 0
             idx2offset = idx2+3
-            plot_room_temp_agent_setpoint(sdfs, room, agentid, axes[idx2offset, idx], True)
+            plot_room_temp_agent_setpoint(sdfs, room, agentid, axes[idx2offset, idx], True,
+                                          heating_setpoint_color=heating_setpoint_color)
             handles, labels = axes[idx2offset, idx].get_legend_handles_labels()
             legend_handles.extend(handles)
             legend_labels.extend(labels)
 
-    p.legend(handles, labels, loc='lower center', ncol=2)
-    #p.subplots_adjust(right=0.7)
-    return p, axes
+    if not axes_given:
+        p.tight_layout()
+        p.legend(handles, labels, loc=legend_location, ncol=cols_legend, framealpha=framealpha)
+        #p.subplots_adjust(right=0.7)
+        return p, axes
+    return None, axes
 
 
 def plot_stpch_and_econs_distrib(subdfs, fig_width):
@@ -569,8 +623,33 @@ def plot_q_values(q_values, fig_width, y_label = None, x_label = None):
                 axes[plot_idx].set_ylabel(y_label)
             if not x_label is None:
                 axes[plot_idx].set_xlabel(x_label)
-            cbar = p.colorbar(im, extend='both', shrink=0.95, ax=axes[plot_idx])
+            cbar = p.colorbar(im, shrink=0.95, ax=axes[plot_idx])
             plot_idx += 1
     return p, axes
 
+
+#
+# for exporting to thesis
+#
+
+def export_loss_plot(dfs, figsize=(4,3)):
+    p, (a, b) = plt.subplots(nrows=2, ncols=1, figsize=(4,3), sharex=True)
+    a.set_ylabel("Mean\ncritic loss")
+    a.set_xlabel("Training episode")
+    b.set_ylabel("Log mean\ncritic loss")
+    b.set_xlabel("Training episode")
+    dfs['eels'].loc[20:, "loss_mean"].plot(ax=a, label="Mean per episode (from ep. 20 on)", color="tab:orange")
+    dfs['eels'].loc[20:, "loss_mean"].plot(ax=b, logy=True, label="Mean per episode (from ep. 20 on)", color="tab:olive")
+    return p, (a, b)
+
+def export_reward_plot(dfs, figsize=(4,3)):
+    p = plt.figure(figsize=figsize)
+    a = plt.gca()
+    a.set_ylabel("Mean reward")
+    a.set_xlabel("Training episode")
+    evaluation_episodes = dfs['sees'].loc[:, "episode"].unique()
+    all_episodes        = dfs['eels'].loc[:, "episode"].unique()
+    non_eval_episodes   = np.setdiff1d(all_episodes, evaluation_episodes)
+    dfs['eels'].loc[non_eval_episodes, "mean_reward"].plot(ax=a, label="Mean per episode (from ep. 20 on)", color="tab:blue")
+    return p, a
 
