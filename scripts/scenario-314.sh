@@ -4,7 +4,7 @@ set -o pipefail
 cd $(dirname $0)
 
 datestr=$(date +"%Y%m%d-%H%M")
-checkpoint_dir=$(realpath "../checkpoints/s313")"/${datestr}"
+checkpoint_dir=$(realpath "../checkpoints/s314")"/${datestr}"
 num_iters=125
 num_episodes_per_iter=300
 

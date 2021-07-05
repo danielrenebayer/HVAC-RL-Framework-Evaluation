@@ -5,7 +5,8 @@ cd $(dirname $0)
 
 datestr=$(date +"%Y%m%d-%H%M")
 checkpoint_dir=$(realpath "../checkpoints/s170")"/${datestr}"
-num_iters=660
+#num_iters=660
+num_iters=282
 num_episodes_per_iter=160
 
 let epsilon_final=$num_iters*$num_episodes_per_iter
@@ -17,6 +18,7 @@ mkdir -p $checkpoint_dir
 for i in $(seq $num_iters); do
     arguments=()
     arguments+=( "--algorithm" "ddqn" )
+    arguments+=( "--ddqn_new" )
     arguments+=( "--model" "Building_5ZoneAirCooled_SingleSetpoint_SingleBIGAgent" )
     arguments+=( "--ts_per_hour" 1 )
     arguments+=( "--ts_until_regulation" 0 )
